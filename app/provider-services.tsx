@@ -123,7 +123,7 @@ export default function ProviderServicesScreen() {
         />
         <TouchableOpacity 
           style={styles.addButton}
-          onPress={() => router.push('/provider-services/create')}
+          onPress={() => router.push('/provider-services/create' as any)}
         >
           <Plus color="white" size={24} />
         </TouchableOpacity>
@@ -151,7 +151,7 @@ export default function ProviderServicesScreen() {
             {!searchQuery && (
               <TouchableOpacity 
                 style={styles.createFirstButton}
-                onPress={() => router.push('/provider-services/create')}
+                onPress={() => router.push('/provider-services/create' as any)}
               >
                 <Plus color="white" size={20} />
                 <Text style={styles.createFirstButtonText}>Create Service</Text>

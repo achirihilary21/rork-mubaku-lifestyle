@@ -37,7 +37,7 @@ export default function CategoryDetailScreen() {
   });
 
   const handleServicePress = (serviceId: string) => {
-    router.push(`/service-detail?id=${serviceId}`);
+    router.push(`/service-detail?id=${serviceId}` as any);
   };
 
   const isLoading = categoryLoading || servicesLoading;

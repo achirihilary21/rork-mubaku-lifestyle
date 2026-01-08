@@ -35,7 +35,7 @@ export default function BookingSummary() {
   const handleConfirmBooking = () => {
     if (service) {
       router.push(
-        `/booking/payment?serviceId=${serviceId}&date=${date}&startTime=${startTime}&endTime=${endTime}&amount=${service.price}&currency=${service.currency}`
+        `/booking/payment?serviceId=${serviceId}&date=${date}&startTime=${startTime}&endTime=${endTime}&amount=${service.price}&currency=${service.currency}` as any
       );
     }
   };

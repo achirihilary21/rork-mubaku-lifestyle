@@ -178,7 +178,7 @@ export default function MyBookingsScreen() {
             {activeTab === 'upcoming' && (
               <TouchableOpacity
                 style={styles.browseButton}
-                onPress={() => router.push('/(tabs)/home')}
+                onPress={() => router.push('/(tabs)/home' as any)}
               >
                 <Text style={styles.browseButtonText}>{t('browseServices')}</Text>
               </TouchableOpacity>
@@ -287,7 +287,7 @@ export default function MyBookingsScreen() {
 
                     <TouchableOpacity
                       style={styles.bookAgainButton}
-                      onPress={() => router.push(`/service-detail?id=${appointment.service?.id}`)}
+                      onPress={() => router.push(`/service-detail?id=${appointment.service?.id}` as any)}
                     >
                       <Text style={styles.bookAgainButtonText}>{t('bookAgain')}</Text>
                     </TouchableOpacity>

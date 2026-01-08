@@ -59,7 +59,7 @@ export default function SelectDateTime() {
       const [hours] = selectedTime.split(':');
       const endHour = parseInt(hours) + 1;
       const endTime = `${endHour.toString().padStart(2, '0')}:00:00`;
-      router.push(`/booking/summary?serviceId=${serviceId}&date=${selectedDate}&startTime=${selectedTime}&endTime=${endTime}`);
+      router.push(`/booking/summary?serviceId=${serviceId}&date=${selectedDate}&startTime=${selectedTime}&endTime=${endTime}` as any);
     }
   };
 

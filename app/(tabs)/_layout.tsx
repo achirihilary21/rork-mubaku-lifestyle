@@ -63,7 +63,7 @@ export default function TabLayout() {
         options={{
           title: t('home'),
           tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
-          href: isProvider ? null : '/(tabs)/home',
+          href: isProvider ? null : '/(tabs)/home' as any,
         }}
       />
       <Tabs.Screen
@@ -71,7 +71,7 @@ export default function TabLayout() {
         options={{
           title: t('dashboard'),
           tabBarIcon: ({ color, size }) => <BarChart3 color={color} size={size} />,
-          href: isProvider ? '/(tabs)/dashboard' : null,
+          href: isProvider ? '/(tabs)/dashboard' as any : null,
         }}
       />
       <Tabs.Screen

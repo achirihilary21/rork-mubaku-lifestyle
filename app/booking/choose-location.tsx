@@ -26,7 +26,7 @@ export default function ChooseLocation() {
 
   const handleNext = () => {
     if (selectedLocation) {
-      router.push(`/booking/summary?agentId=${agentId}&date=${date}&time=${time}&location=${selectedLocation}`);
+      router.push(`/booking/summary?agentId=${agentId}&date=${date}&time=${time}&location=${selectedLocation}` as any);
     }
   };
 

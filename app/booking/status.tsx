@@ -29,7 +29,7 @@ export default function BookingStatus() {
     console.log('Review submitted:', { rating, review, appointmentId });
     // In a real app, you would send this review to your API
     Alert.alert('Thank you!', 'Your review has been submitted.');
-    router.push('/(tabs)/home');
+    router.push('/(tabs)/home' as any);
   };
 
   const handleCompleteService = async () => {
