@@ -67,6 +67,8 @@ export default function SearchScreen() {
         setMinPrice(0);
         setMaxPrice(500);
         setMinRating(0);
+        setAvailabilityDate('');
+        setAvailabilityTime('');
     };
 
     const renderResultItem = ({ item }: { item: any }) => {

@@ -45,7 +45,6 @@ interface PaymentAppointment {
   service: string;
   scheduled_at: string;
   provider_name: string;
-  status?: string;
 }
 
 interface PaymentMethodInfo {

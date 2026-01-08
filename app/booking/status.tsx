@@ -645,25 +645,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   bottomSpacing: {
-    height: Platform.OS === 'android' ? 80 : 20,
-  },
-  paymentSuccessContainer: {
-    backgroundColor: '#E8F5E9',
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  paymentSuccessTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#10B981',
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  paymentSuccessMessage: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
+    height: Platform.OS === 'android' ? 80 : 20, // Extra spacing for Android navigation
   },
 });

@@ -853,7 +853,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#2D1A46',
   },
-  serviceProviderInfo: {
+  providerInfo: {
     marginBottom: 6,
   },
   providerBusiness: {
@@ -861,7 +861,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#2D1A46',
   },
-  serviceProviderName: {
+  providerName: {
     fontSize: 11,
     color: '#666',
   },

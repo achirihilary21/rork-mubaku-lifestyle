@@ -1,14 +1,14 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator, Alert, Share } from 'react-native';
-import { CheckCircle, Receipt, Clock, AlertCircle, ArrowLeft } from 'lucide-react-native';
-import { useGetPaymentByIdQuery } from '@/store/services/paymentApi';
+import { CheckCircle, Receipt, MapPin, Clock, AlertCircle, ArrowLeft } from 'lucide-react-native';
+import { useGetPaymentByIdQuery, useLazyGetPaymentStatusQuery } from '@/store/services/paymentApi';
 import { useCompleteAppointmentMutation } from '@/store/services/appointmentApi';
 
 export default function TransactionDetailsScreen() {
     const { paymentId } = useLocalSearchParams<{ paymentId: string }>();
     const [completeAppointment, { isLoading: isCompleting }] = useCompleteAppointmentMutation();
-
+    const [getPaymentStatus] = useLazyGetPaymentStatusQuery();
 
     const { data: payment, isLoading, error, refetch } = useGetPaymentByIdQuery(paymentId || '', {
         skip: !paymentId,
@@ -243,7 +243,7 @@ Thank you for using Mu Baku Lifestyle!
                     <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Status</Text>
                         <Text style={[styles.detailValue, styles.statusValue]}>
-                            {payment.appointment?.status ? payment.appointment.status.charAt(0).toUpperCase() + payment.appointment.status.slice(1) : 'N/A'}
+                            {payment.appointment?.status?.charAt(0).toUpperCase() + payment.appointment?.status?.slice(1) || 'N/A'}
                         </Text>
                     </View>
                 </View>

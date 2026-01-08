@@ -19,9 +19,6 @@ interface Appointment {
   client?: any;
   provider?: any;
   service?: any;
-  latitude?: number;
-  longitude?: number;
-  location?: string;
 }
 
 interface CreateAppointmentRequest {

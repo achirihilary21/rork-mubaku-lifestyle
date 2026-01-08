@@ -28,17 +28,11 @@ interface Service {
   duration_minutes: number;
   price: string;
   image: string;
-  image_url?: string;
   currency: string;
   price_display: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
-  rating?: number;
-  total_bookings?: number;
-  latitude?: number;
-  longitude?: number;
-  location?: string;
   provider_location: {
     address: string;
     city: string;
@@ -50,25 +44,9 @@ interface Service {
     static_map?: string;
     google_maps_link: string;
     is_verified_provider: boolean;
-    full_name?: string;
-    email?: string;
-    location?: string;
   };
   provider_map: string;
   provider_static_map?: string;
-  category_details?: {
-    id: string;
-    name: string;
-    description?: string;
-  };
-  provider_details?: {
-    id: string;
-    pkid: number;
-    full_name: string;
-    business_name?: string;
-    phone_number?: string;
-    city?: string;
-  };
 }
 
 interface CreateServiceRequest {
