@@ -145,10 +145,10 @@ export default function BookingStatus() {
       <ScrollView style={styles.content}>
         {/* Payment Success Message */}
         {paymentSuccess === 'true' && paymentMessage && (
-          <View style={styles.paymentSuccessContainer}>
+          <View style={styles.successContainer}>
             <CheckCircle color="#10B981" size={48} />
-            <Text style={styles.paymentSuccessTitle}>Payment Successful!</Text>
-            <Text style={styles.paymentSuccessMessage}>{decodeURIComponent(paymentMessage)}</Text>
+            <Text style={styles.successTitle}>Payment Successful!</Text>
+            <Text style={styles.successMessage}>{decodeURIComponent(paymentMessage)}</Text>
           </View>
         )}
 
@@ -300,14 +300,14 @@ export default function BookingStatus() {
         )}
 
         {/* View Location Button - Only shown for booked appointments with location */}
-        {appointment && !isCancelled && (appointment.latitude && appointment.longitude) && (
+        {appointment && !isCancelled && ((appointment as any).latitude && (appointment as any).longitude) && (
           <View style={styles.locationCard}>
             <TouchableOpacity
               style={styles.viewLocationButton}
               onPress={() => {
-                const locationName = appointment.location || `${appointment.provider?.city || 'Service'} Location`;
+                const locationName = (appointment as any).location || `${appointment.provider?.city || 'Service'} Location`;
                 const serviceName = appointment.service?.name || 'Service';
-                router.push(`/view-location?latitude=${appointment.latitude}&longitude=${appointment.longitude}&locationName=${encodeURIComponent(locationName)}&serviceName=${encodeURIComponent(serviceName)}` as any);
+                router.push(`/view-location?latitude=${(appointment as any).latitude}&longitude=${(appointment as any).longitude}&locationName=${encodeURIComponent(locationName)}&serviceName=${encodeURIComponent(serviceName)}` as any);
               }}
             >
               <MapPin color="white" size={20} />

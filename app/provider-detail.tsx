@@ -18,7 +18,7 @@ export default function ProviderDetailScreen() {
 
   const providerServices = React.useMemo(() => {
     if (!allServices || !provider) return [];
-    return allServices.filter(service => service.provider_details?.pkid === provider.pkid);
+    return allServices.filter(service => (service as any).provider_details?.pkid === provider.pkid);
   }, [allServices, provider]);
 
   const handleServicePress = (serviceId: string) => {
@@ -186,8 +186,8 @@ export default function ProviderDetailScreen() {
                   onPress={() => handleServicePress(service.id)}
                 >
                   <View style={styles.serviceImageContainer}>
-                    {service.image_url ? (
-                      <Image source={{ uri: service.image_url }} style={styles.serviceImage} />
+                    {(service as any).image_url ? (
+                      <Image source={{ uri: (service as any).image_url }} style={styles.serviceImage} />
                     ) : (
                       <View style={styles.serviceImagePlaceholder}>
                         <Text style={styles.serviceImageText}>💼</Text>
@@ -196,7 +196,7 @@ export default function ProviderDetailScreen() {
                   </View>
                   <View style={styles.serviceInfo}>
                     <Text style={styles.serviceName} numberOfLines={1}>{service.name}</Text>
-                    <Text style={styles.serviceCategory} numberOfLines={1}>{service.category_details?.name || 'Service'}</Text>
+                    <Text style={styles.serviceCategory} numberOfLines={1}>{service.category_name || 'Service'}</Text>
                     <View style={styles.serviceMeta}>
                       <Text style={styles.servicePrice}>{Math.floor(Number(service.price))} {service.currency}</Text>
                       <Text style={styles.serviceDuration}>{service.duration_minutes}min</Text>

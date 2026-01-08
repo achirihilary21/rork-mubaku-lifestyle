@@ -154,7 +154,7 @@ export default function CategoryDetailScreen() {
                       <View style={styles.ratingContainer}>
                         <Star color="#FFD700" size={16} fill="#FFD700" />
                         <Text style={styles.rating}>
-                          {service.rating || '5.0'}
+                          {(service as any).rating || '5.0'}
                         </Text>
                       </View>
                       <Text style={styles.duration}>

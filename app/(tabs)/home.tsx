@@ -395,9 +395,9 @@ export default function HomeScreen() {
                         </View>
                       )}
                     </View>
-                    <View style={styles.providerInfo}>
+                    <View style={styles.serviceProviderInfo}>
                       <Text style={styles.providerBusiness} numberOfLines={1}>{service.provider_business}</Text>
-                      <Text style={styles.providerName} numberOfLines={1}>by {service.provider_name}</Text>
+                      <Text style={styles.serviceProviderName} numberOfLines={1}>by {service.provider_name}</Text>
                     </View>
                     <Text style={styles.serviceCategory} numberOfLines={1}>{service.category_name}</Text>
                     <View style={styles.locationRow}>
@@ -853,7 +853,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#2D1A46',
   },
-  providerInfo: {
+  serviceProviderInfo: {
     marginBottom: 6,
   },
   providerBusiness: {
@@ -861,7 +861,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#2D1A46',
   },
-  providerName: {
+  serviceProviderName: {
     fontSize: 11,
     color: '#666',
   },

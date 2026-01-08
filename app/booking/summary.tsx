@@ -78,9 +78,9 @@ export default function BookingSummary() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Service</Text>
           <Text style={styles.serviceName}>{service.name}</Text>
-          <Text style={styles.categoryName}>{service.category_details?.name}</Text>
-          {service.provider_details && (
-            <Text style={styles.providerName}>By {service.provider_details.full_name}</Text>
+          <Text style={styles.categoryName}>{service.category_name}</Text>
+          {service.provider_name && (
+            <Text style={styles.providerName}>By {service.provider_name}</Text>
           )}
         </View>
 

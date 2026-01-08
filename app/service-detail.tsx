@@ -71,22 +71,22 @@ export default function ServiceDetailScreen() {
         <View style={styles.content}>
           <View style={styles.serviceHeader}>
             <Text style={styles.serviceName}>{service.name}</Text>
-            {service.rating !== undefined && service.rating > 0 && (
+            {(service as any).rating !== undefined && (service as any).rating > 0 && (
               <View style={styles.ratingContainer}>
                 <Star color="#FFD700" size={20} fill="#FFD700" />
-                <Text style={styles.rating}>{service.rating.toFixed(1)}</Text>
+                <Text style={styles.rating}>{(service as any).rating.toFixed(1)}</Text>
               </View>
             )}
           </View>
 
-          {service.category_details && (
-            <Text style={styles.category}>{service.category_details.name}</Text>
+          {service.category_name && (
+            <Text style={styles.category}>{service.category_name}</Text>
           )}
           {service.provider_location && (
-            <Text style={styles.providerName}>By {service.provider_location.full_name || 'Provider'}</Text>
+            <Text style={styles.providerName}>By {service.provider_location.business_name || 'Provider'}</Text>
           )}
-          {service.total_bookings !== undefined && service.total_bookings > 0 && (
-            <Text style={styles.bookingsCount}>{service.total_bookings} bookings</Text>
+          {(service as any).total_bookings !== undefined && (service as any).total_bookings > 0 && (
+            <Text style={styles.bookingsCount}>{(service as any).total_bookings} bookings</Text>
           )}
 
           {/* Service Details Card */}
@@ -122,11 +122,11 @@ export default function ServiceDetailScreen() {
             <View style={styles.locationCard}>
               <Text style={styles.cardTitle}>Location</Text>
               <Text style={styles.locationText}>
-                {service.provider_location?.location || service.provider_location?.location || service.provider_location?.city || 'Service Location'}
+                {service.provider_location?.address || service.provider_location?.city || 'Service Location'}
               </Text>
               <TouchableOpacity 
                 style={styles.viewLocationButton}
-                onPress={() => router.push(`/view-location?latitude=${service.provider_location?.latitude || service.provider_location?.latitude}&longitude=${service.provider_location?.longitude || service.provider_location?.longitude}&locationName=${encodeURIComponent(service.location || service.provider_location?.location || service.provider_location?.city || 'Service Location')}&serviceName=${encodeURIComponent(service.name)}` as any)}
+                onPress={() => router.push(`/view-location?latitude=${service.provider_location?.latitude}&longitude=${service.provider_location?.longitude}&locationName=${encodeURIComponent(service.provider_location?.address || service.provider_location?.city || 'Service Location')}&serviceName=${encodeURIComponent(service.name)}` as any)}
               >
                 <MapPin color="white" size={18} />
                 <Text style={styles.viewLocationButtonText}>View on Map</Text>
@@ -139,11 +139,9 @@ export default function ServiceDetailScreen() {
             <View style={styles.providerCard}>
               <Text style={styles.cardTitle}>Provider Information</Text>
               <Text style={styles.providerInfo}>
-                {service.provider_location.full_name || 'Provider'}
+                {service.provider_location.business_name || 'Provider'}
               </Text>
-              {service.provider_location.email && (
-                <Text style={styles.providerContact}>{service.provider_location.email}</Text>
-              )}
+              <Text style={styles.providerContact}>{service.provider_location.city}, {service.provider_location.country}</Text>
             </View>
           )}
         </View>
