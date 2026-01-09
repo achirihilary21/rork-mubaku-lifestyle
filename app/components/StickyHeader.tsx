@@ -37,11 +37,11 @@ export default function StickyHeader() {
       icon: Users,
       route: '/(tabs)/providers',
     },
-    {
-      title: 'Payments & History',
-      icon: Receipt,
-      route: '/booking/payment-status', // This might need to be updated to a dedicated payments history screen
-    },
+    // {
+    //   title: 'Payments & History',
+    //   icon: Receipt,
+    //   route: '/booking/', // This might need to be updated to a dedicated payments history screen
+    // },
   ];
 
   const businessItems = [

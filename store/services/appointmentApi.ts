@@ -34,6 +34,9 @@ interface RescheduleRequest {
   scheduled_until: string;
 }
 
+interface CompleteAppointmentRequest {
+}
+
 interface Availability {
   id: string;
   provider: string;
@@ -126,6 +129,19 @@ export const appointmentApi = api.injectEndpoints({
     rescheduleAppointment: builder.mutation<Appointment, { appointmentId: string } & RescheduleRequest>({
       query: ({ appointmentId, ...data }) => ({
         url: `/appointments/${appointmentId}/reschedule/`,
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: (result, error, { appointmentId }) => [
+        { type: 'Appointment', id: appointmentId },
+        'Appointment',
+        'Availability',
+      ],
+    }),
+
+    completeAppointment: builder.mutation<Appointment, { appointmentId: string }>({
+      query: ({}) => ({
+        url: `/appointments/${appointmentId}/complete/`,
         method: 'POST',
         body: data,
       }),
