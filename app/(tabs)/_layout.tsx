@@ -88,13 +88,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <Calendar color={color} size={size} />,
         }}
       />
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="messages"
         options={{
           title: t('messages'),
           tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} />,
         }}
-      />
+      /> */}
       <Tabs.Screen
         name="profile"
         options={{
