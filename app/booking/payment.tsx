@@ -204,14 +204,14 @@ export default function PaymentScreen() {
       // Handle response structure
       const paymentData = paymentResponse;
 
-      if (!paymentData || !paymentData.payment?.frontend_token) {
+      if (!paymentData || !paymentData.frontend_token) {
         throw new Error('Frontend token not found in payment response');
       }
 
-      console.log('[Payment] Frontend token:', paymentData.payment.frontend_token.substring(0, 8) + '...');
+      console.log('[Payment] Frontend token:', paymentData.frontend_token.substring(0, 8) + '...');
 
       // Navigate to payment status page for polling
-      router.replace(`/booking/payment-status?frontendToken=${paymentData.payment.frontend_token}&phoneNumber=${encodeURIComponent(phoneNumber)}` as any);
+      router.replace(`/booking/payment-status?frontendToken=${paymentData.frontend_token}&phoneNumber=${encodeURIComponent(phoneNumber)}` as any);
     } catch (error: any) {
       console.error('[Payment] Error:', error?.status || 'Unknown');
 
