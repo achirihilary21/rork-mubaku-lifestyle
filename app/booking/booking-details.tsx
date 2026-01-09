@@ -14,10 +14,6 @@ export default function CompleteAppointmentScreen() {
   const { data: appointment, isLoading: appointmentLoading } = useGetAppointmentDetailQuery(appointmentId!);
   const [isCompleting, setIsCompleting] = useState(false);
 
-  const handleReschedule = (appointmentId: string) => {
-      router.push(`/booking/reschedule?appointmentId=${appointmentId}` as any);
-    };
-
   const handleCompleteAppointment = async () => {
     Alert.alert(
       'Confirm Completion',
@@ -34,9 +30,7 @@ export default function CompleteAppointmentScreen() {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'Accept-Language': await AsyncStorage.getItem('user-language')
-                  // Ensure you include your Auth token here if required
-                  // 'Authorization': `Bearer ${token}`
+                  'Accept-Language': (await AsyncStorage.getItem('user-language')) || 'en',
                 },
                 body: JSON.stringify({}),
               });
@@ -45,12 +39,12 @@ export default function CompleteAppointmentScreen() {
                 throw new Error('Failed to complete appointment');
               }
 
-              const result = await response.json();
+              await response.json();
 
               Alert.alert('Success', 'Appointment marked as completed!', [
                 { text: 'OK', onPress: () => {} }
               ]);
-            } catch (error) {
+            } catch {
               Alert.alert('Error', 'Could not complete the appointment. Please try again.');
             } finally {
               setIsCompleting(false);
@@ -87,7 +81,7 @@ export default function CompleteAppointmentScreen() {
             <CheckCircle2 color="#4CAF50" size={64} strokeWidth={1.5} />
             <Text style={styles.confirmText}>Finalize Service</Text>
             <Text style={styles.descriptionText}>
-              Please confirm that the service for <Text style={styles.bold}>{appointment?.service_name}</Text> has been performed.
+              Please confirm that the service for <Text style={styles.bold}>{appointment?.service?.name || 'this appointment'}</Text> has been performed.
             </Text>
           </View>
 
@@ -96,7 +90,7 @@ export default function CompleteAppointmentScreen() {
             <View style={styles.infoTextContainer}>
               <Text style={styles.infoLabel}>Payment Status</Text>
               <Text style={styles.infoValue}>
-                Upon completion, {appointment?.amount} {appointment?.currency} will be released to {appointment?.provider_name}.
+                Upon completion, {appointment?.amount} {appointment?.currency} will be released to {appointment?.provider?.full_name || 'the provider'}.
               </Text>
             </View>
           </View>
