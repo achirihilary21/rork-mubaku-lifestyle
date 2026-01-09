@@ -552,7 +552,7 @@ export default function PaymentScreen() {
         </ScrollView>
 
         {/* Quick Summary & Pay Button - Positioned higher for better Android UX */}
-        {paymentMethod && selectedMethodData && (
+        {/* {paymentMethod && selectedMethodData && (
           <View style={styles.quickSummaryContainer}>
             <View style={styles.quickSummaryCard}>
               <View style={styles.quickSummaryRow}>
@@ -573,7 +573,7 @@ export default function PaymentScreen() {
               </Text>
             </View>
           </View>
-        )}
+        )} */}
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity
