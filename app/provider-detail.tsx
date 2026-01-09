@@ -4,6 +4,7 @@ import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, Act
 import { ArrowLeft, User, Star, Phone, Mail } from 'lucide-react-native';
 import { useGetApprovedProvidersQuery } from '@/store/services/profileApi';
 import { useGetAllServicesQuery } from '@/store/services/servicesApi';
+import CustomTabBar from './components/CustomTabBar';
 
 export default function ProviderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
