@@ -359,172 +359,136 @@ Thank you for using Mu Baku Lifestyle!
   const statusColor = getStatusColor(status);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        style={styles.scrollContent}
-        contentContainerStyle={styles.scrollContentContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.content}>
-          <View style={styles.iconContainer}>
-            {hasExpired ? <XCircle color="#EF4444" size={80} /> : getStatusIcon(status)}
-          </View>
+    <View style={{ flex: 1, backgroundColor: '#F5F5F5' }}>
+      <SafeAreaView style={styles.container}>
+        <ScrollView
+          style={styles.scrollContent}
+          contentContainerStyle={styles.scrollContentContainer}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.content}>
+            <View style={styles.iconContainer}>
+              {hasExpired ? <XCircle color="#EF4444" size={80} /> : getStatusIcon(status)}
+            </View>
 
-          <Text style={[styles.title, { color: isFailed ? '#EF4444' : '#2D1A46' }]}>
-            {getStatusTitle(status)}
-          </Text>
+            <Text style={[styles.title, { color: isFailed ? '#EF4444' : '#2D1A46' }]}>
+              {getStatusTitle(status)}
+            </Text>
 
-          <Text style={styles.message}>{getStatusMessage()}</Text>
+            <Text style={styles.message}>{getStatusMessage()}</Text>
 
-          {isProcessing && !hasExpired && (
-            <>
-              <View style={styles.timerContainer}>
-                <Clock color="#666" size={20} />
-                <Text style={styles.timerText}>Elapsed: {formatTime(timeElapsed)}</Text>
-                <Text style={styles.timerDivider}>•</Text>
-                <Text style={styles.timerText}>Timeout: {formatTimeRemaining(timeElapsed)}</Text>
-              </View>
+            {isProcessing && !hasExpired && (
+              <>
+                <View style={styles.timerContainer}>
+                  <Clock color="#666" size={20} />
+                  <Text style={styles.timerText}>Elapsed: {formatTime(timeElapsed)}</Text>
+                  <Text style={styles.timerDivider}>•</Text>
+                  <Text style={styles.timerText}>Timeout: {formatTimeRemaining(timeElapsed)}</Text>
+                </View>
 
-              {payment?.state_machine && (
-                <View style={styles.progressContainer}>
-                  <View style={styles.progressBar}>
-                    <View
-                      style={[
-                        styles.progressFill,
-                        { width: `${payment.state_machine.progress}%`, backgroundColor: statusColor }
-                      ]}
-                    />
+                {payment?.state_machine && (
+                  <View style={styles.progressContainer}>
+                    <View style={styles.progressBar}>
+                      <View
+                        style={[
+                          styles.progressFill,
+                          { width: `${payment.state_machine.progress}%`, backgroundColor: statusColor }
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.progressText}>
+                      {payment.state_machine.current.replace(/_/g, ' ').toUpperCase()}
+                    </Text>
                   </View>
-                  <Text style={styles.progressText}>
-                    {payment.state_machine.current.replace(/_/g, ' ').toUpperCase()}
-                  </Text>
-                </View>
-              )}
+                )}
 
-              <View style={styles.instructionCard}>
-                <View style={styles.instructionHeader}>
-                  <Phone color="#2D1A46" size={24} />
-                  <Text style={styles.instructionTitle}>
-                    {status === 'pending' ? 'Action Required' : 'Processing'}
+                <View style={styles.instructionCard}>
+                  <View style={styles.instructionHeader}>
+                    <Phone color="#2D1A46" size={24} />
+                    <Text style={styles.instructionTitle}>
+                      {status === 'pending' ? 'Action Required' : 'Processing'}
+                    </Text>
+                  </View>
+                  <Text style={styles.instructionText}>
+                    {status === 'pending'
+                      ? `Look for a USSD popup on ${phoneNumber}. Enter your mobile money PIN to approve the payment.`
+                      : 'Please wait while we confirm your payment with the mobile money provider.'}
+                  </Text>
+                  {status === 'pending' && (
+                    <Text style={styles.instructionNote}>
+                      💡 Tip: If you don&apos;t see a prompt, dial *126# (MTN) or #150# (Orange) and check for pending transactions.
+                    </Text>
+                  )}
+                </View>
+              </>
+            )}
+
+            {isCompleted && payment?.gateway && (
+              <View style={styles.detailsCard}>
+                <Text style={styles.detailsTitle}>Payment Details</Text>
+                {payment.gateway.transaction_id && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Transaction ID</Text>
+                    <Text style={styles.detailValue} numberOfLines={1}>
+                      {payment.gateway.transaction_id}
+                    </Text>
+                  </View>
+                )}
+                {payment.gateway.receipt_number && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Receipt Number</Text>
+                    <Text style={styles.detailValue}>{payment.gateway.receipt_number}</Text>
+                  </View>
+                )}
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Amount Paid</Text>
+                  <Text style={[styles.detailValue, styles.amountValue]}>
+                    {payment.amount.currency} {Math.round(payment.amount.total)}
                   </Text>
                 </View>
-                <Text style={styles.instructionText}>
-                  {status === 'pending'
-                    ? `Look for a USSD popup on ${phoneNumber}. Enter your mobile money PIN to approve the payment.`
-                    : 'Please wait while we confirm your payment with the mobile money provider.'}
-                </Text>
-                {status === 'pending' && (
-                  <Text style={styles.instructionNote}>
-                    💡 Tip: If you don&apos;t see a prompt, dial *126# (MTN) or #150# (Orange) and check for pending transactions.
+                {payment.escrow && (
+                  <View style={styles.escrowInfo}>
+                    <Text style={styles.escrowText}>
+                      🔒 Funds held securely in escrow until service completion
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {isFailed && payment?.failure_details && (
+              <View style={styles.errorCard}>
+                <View style={styles.errorHeader}>
+                  <AlertCircle size={24} color="#EF4444" />
+                  <Text style={styles.errorTitle}>
+                    {payment.failure_details.code.replace(/_/g, ' ')}
+                  </Text>
+                </View>
+                <Text style={styles.errorMessage}>{payment.failure_details.message}</Text>
+                {payment.failure_details.retry_allowed && (
+                  <Text style={styles.retryHint}>
+                    ✓ You can try again with the same or a different payment method
                   </Text>
                 )}
               </View>
-            </>
-          )}
+            )}
 
-          {isCompleted && payment?.gateway && (
-            <View style={styles.detailsCard}>
-              <Text style={styles.detailsTitle}>Payment Details</Text>
-              {payment.gateway.transaction_id && (
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Transaction ID</Text>
-                  <Text style={styles.detailValue} numberOfLines={1}>
-                    {payment.gateway.transaction_id}
-                  </Text>
+            {hasExpired && (
+              <View style={styles.errorCard}>
+                <View style={styles.errorHeader}>
+                  <Clock size={24} color="#EF4444" />
+                  <Text style={styles.errorTitle}>Payment Expired</Text>
                 </View>
-              )}
-              {payment.gateway.receipt_number && (
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Receipt Number</Text>
-                  <Text style={styles.detailValue}>{payment.gateway.receipt_number}</Text>
-                </View>
-              )}
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Amount Paid</Text>
-                <Text style={[styles.detailValue, styles.amountValue]}>
-                  {payment.amount.currency} {Math.round(payment.amount.total)}
+                <Text style={styles.errorMessage}>
+                  The payment request expired after 5 minutes. No charges were made to your account.
                 </Text>
               </View>
-              {payment.escrow && (
-                <View style={styles.escrowInfo}>
-                  <Text style={styles.escrowText}>
-                    🔒 Funds held securely in escrow until service completion
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
-
-          {isFailed && payment?.failure_details && (
-            <View style={styles.errorCard}>
-              <View style={styles.errorHeader}>
-                <AlertCircle size={24} color="#EF4444" />
-                <Text style={styles.errorTitle}>
-                  {payment.failure_details.code.replace(/_/g, ' ')}
-                </Text>
-              </View>
-              <Text style={styles.errorMessage}>{payment.failure_details.message}</Text>
-              {payment.failure_details.retry_allowed && (
-                <Text style={styles.retryHint}>
-                  ✓ You can try again with the same or a different payment method
-                </Text>
-              )}
-            </View>
-          )}
-
-          {hasExpired && (
-            <View style={styles.errorCard}>
-              <View style={styles.errorHeader}>
-                <Clock size={24} color="#EF4444" />
-                <Text style={styles.errorTitle}>Payment Expired</Text>
-              </View>
-              <Text style={styles.errorMessage}>
-                The payment request expired after 5 minutes. No charges were made to your account.
-              </Text>
-            </View>
-          )}
-        </View>
-      </ScrollView>
-
-      <View style={styles.buttonContainer}>
-        {isCompleted && (
-          <View accessible={false}>
-            <TouchableOpacity style={styles.primaryButton} onPress={handleViewBooking} accessible={true}>
-              <Text style={styles.primaryButtonText}>View My Booking</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.receiptButton]}
-              onPress={handleViewReceipt}
-              accessible={true}
-            >
-              <Receipt color="white" size={20} />
-              <Text style={styles.actionButtonText}>Receipt</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.secondaryButton} onPress={handleGoHome} accessible={true}>
-              <Text style={styles.secondaryButtonText}>Back to Home</Text>
-            </TouchableOpacity>
+            )}
           </View>
-        )}
-
-        {isFailed && (
-          <View accessible={false}>
-            <TouchableOpacity style={styles.primaryButton} onPress={handleRetry} accessible={true}>
-              <Text style={styles.primaryButtonText}>Try Again</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.secondaryButton} onPress={handleGoHome} accessible={true}>
-              <Text style={styles.secondaryButtonText}>Back to Home</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {isProcessing && !hasExpired && (
-          <View style={styles.waitingContainer}>
-            <ActivityIndicator size="small" color="#2D1A46" />
-            <Text style={styles.waitingText}>Please do not close this screen</Text>
-          </View>
-        )}
-      </View>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
+      <CustomTabBar />
+    </View>
   );
 }
 

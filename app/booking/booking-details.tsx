@@ -4,6 +4,7 @@ import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicat
 import { ArrowLeft, CheckCircle2, Info } from 'lucide-react-native';
 import { useGetAppointmentDetailQuery } from '@/store/services/appointmentApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import CustomTabBar from '../components/CustomTabBar';
 
 // Assuming your base URL is defined in your constants
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://mubakulifestyle.com/api/v1';
@@ -71,57 +72,51 @@ export default function CompleteAppointmentScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <ArrowLeft color="white" size={24} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Complete Appointment</Text>
-        <View style={styles.placeholder} />
-      </View>
-
-      <View style={styles.content}>
-        <View style={styles.statusCard}>
-          <CheckCircle2 color="#4CAF50" size={64} strokeWidth={1.5} />
-          <Text style={styles.confirmText}>Finalize Service</Text>
-          <Text style={styles.descriptionText}>
-            Please confirm that the service for <Text style={styles.bold}>{appointment?.service_name}</Text> has been performed.
-          </Text>
+    <View style={{ flex: 1, backgroundColor: '#F5F5F5' }}>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <ArrowLeft color="white" size={24} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Complete Appointment</Text>
+          <View style={styles.placeholder} />
         </View>
 
-        <View style={styles.infoBox}>
-          <Info color="#2D1A46" size={20} />
-          <View style={styles.infoTextContainer}>
-            <Text style={styles.infoLabel}>Payment Status</Text>
-            <Text style={styles.infoValue}>
-              Upon completion, {appointment?.amount} {appointment?.currency} will be released to {appointment?.provider_name}.
+        <View style={styles.content}>
+          <View style={styles.statusCard}>
+            <CheckCircle2 color="#4CAF50" size={64} strokeWidth={1.5} />
+            <Text style={styles.confirmText}>Finalize Service</Text>
+            <Text style={styles.descriptionText}>
+              Please confirm that the service for <Text style={styles.bold}>{appointment?.service_name}</Text> has been performed.
             </Text>
           </View>
+
+          <View style={styles.infoBox}>
+            <Info color="#2D1A46" size={20} />
+            <View style={styles.infoTextContainer}>
+              <Text style={styles.infoLabel}>Payment Status</Text>
+              <Text style={styles.infoValue}>
+                Upon completion, {appointment?.amount} {appointment?.currency} will be released to {appointment?.provider_name}.
+              </Text>
+            </View>
+          </View>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={[styles.completeButton, isCompleting && styles.disabledButton]}
+              onPress={handleCompleteAppointment}
+              disabled={isCompleting}
+            >
+              {isCompleting ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text style={styles.completeButtonText}>Mark as Completed</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={[styles.completeButton, isCompleting && styles.disabledButton]}
-          onPress={handleCompleteAppointment}
-          disabled={isCompleting}
-        >
-          {isCompleting ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text style={styles.completeButtonText}>Mark as Completed</Text>
-          )}
-        </TouchableOpacity>
-
-        {/* <TouchableOpacity
-            style={styles.rescheduleButton}
-            onPress={() => handleReschedule(appointment.id)}
-        >
-            <Edit color="#2D1A46" size={18} />
-            <Text style={styles.rescheduleButtonText}>{t('reschedule')}</Text>
-        </TouchableOpacity> */}
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+      <CustomTabBar />
+    </View>
   );
 }
 
