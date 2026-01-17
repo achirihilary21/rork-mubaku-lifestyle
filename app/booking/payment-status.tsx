@@ -24,6 +24,13 @@ export default function PaymentStatusScreen() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
+  const stopTimer = () => {
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+  };
+
   useEffect(() => {
     if (!frontendToken) {
       console.error('[PaymentStatus] No frontend token provided');
@@ -61,6 +68,7 @@ export default function PaymentStatusScreen() {
           if (result.data?.status === 'completed' || result.data?.status === 'failed') {
             console.log('[PaymentStatus] Final status reached:', result.data.status);
             stopPolling();
+            stopTimer();
           }
         } catch (err) {
           console.error('[PaymentStatus] Polling error:', err);
@@ -86,9 +94,7 @@ export default function PaymentStatusScreen() {
 
     return () => {
       stopPolling();
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-      }
+      stopTimer();
     };
   }, [frontendToken, getPaymentStatus]);
 
@@ -176,7 +182,7 @@ export default function PaymentStatusScreen() {
   };
 
   const getStatusTitle = (status: PaymentStatus) => {
-    if (hasExpired) return 'Payment Timeout';
+    if (hasExpired && status !== 'completed') return 'Payment Timeout';
 
     switch (status) {
       case 'completed':
@@ -201,7 +207,7 @@ export default function PaymentStatusScreen() {
   };
 
   const getStatusMessage = () => {
-    if (hasExpired) {
+    if (hasExpired && payment?.status !== 'completed') {
       return 'The payment request has expired. Please try booking again.';
     }
 
@@ -382,9 +388,9 @@ Thank you for using Mu Baku Lifestyle!
   }
 
   const status = payment?.status || 'pending';
-  const isProcessing = status === 'pending' || status === 'processing';
   const isCompleted = status === 'completed';
-  const isFailed = status === 'failed' || hasExpired;
+  const isProcessing = (status === 'pending' || status === 'processing') && !isCompleted;
+  const isFailed = status === 'failed' || (hasExpired && !isCompleted);
   const statusColor = getStatusColor(status);
 
   return (
@@ -397,7 +403,7 @@ Thank you for using Mu Baku Lifestyle!
         >
           <View style={styles.content}>
             <View style={styles.iconContainer}>
-              {hasExpired ? <XCircle color="#EF4444" size={80} /> : getStatusIcon(status)}
+              {hasExpired && !isCompleted ? <XCircle color="#EF4444" size={80} /> : getStatusIcon(status)}
             </View>
 
             <Text style={[styles.title, { color: isFailed ? '#EF4444' : '#2D1A46' }]}>
@@ -530,7 +536,7 @@ Thank you for using Mu Baku Lifestyle!
               </View>
             )}
 
-            {hasExpired && (
+            {hasExpired && !isCompleted && (
               <View style={styles.errorCard}>
                 <View style={styles.errorHeader}>
                   <Clock size={24} color="#EF4444" />
