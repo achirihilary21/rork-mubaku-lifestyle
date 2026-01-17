@@ -70,8 +70,8 @@ export default function MyBookingsScreen() {
     );
   };
 
-  const handleCompleteAppointment = (appointmentId: string) => {
-    router.push(`/booking/booking-details?appointmentId=${appointmentId}` as any);
+  const handleViewAppointmentDetails = (appointmentId: string) => {
+    router.push(`/booking/status?appointmentId=${appointmentId}` as any);
   };
 
   const getStatusColor = (status: string) => {
@@ -259,10 +259,10 @@ export default function MyBookingsScreen() {
                   <View style={styles.appointmentActions}>
                     <TouchableOpacity
                       style={styles.rescheduleButton}
-                      onPress={() => handleCompleteAppointment(appointment.id)}
+                      onPress={() => handleViewAppointmentDetails(appointment.id)}
                     >
                       <Edit color="#2D1A46" size={18} />
-                      <Text style={styles.rescheduleButtonText}>{t('reschedule')}</Text>
+                      <Text style={styles.rescheduleButtonText}>{t('viewDetails')}</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
