@@ -90,7 +90,7 @@ export default function CompleteAppointmentScreen() {
             <View style={styles.infoTextContainer}>
               <Text style={styles.infoLabel}>Payment Status</Text>
               <Text style={styles.infoValue}>
-                Upon completion, {appointment?.amount} {appointment?.currency} will be released to {appointment?.provider?.full_name || 'the provider'}.
+                Upon completion, {Number(appointment?.amount || 0).toFixed(2)} {appointment?.currency} will be released to {appointment?.provider?.full_name || 'the provider'}.
               </Text>
             </View>
           </View>

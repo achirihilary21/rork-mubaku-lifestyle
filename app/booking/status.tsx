@@ -213,7 +213,7 @@ export default function BookingStatus() {
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Total Paid:</Text>
               <Text style={[styles.detailValue, styles.amountValue]}>
-                {appointment.currency} {appointment.amount.toFixed(2)}
+                {appointment.currency} {Number(appointment.amount || 0).toFixed(2)}
               </Text>
             </View>
 
