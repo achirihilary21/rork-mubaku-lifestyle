@@ -1,16 +1,20 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Animated, ScrollView, Alert, Share } from 'react-native';
-import { CheckCircle, XCircle, Clock, AlertCircle, Phone, RefreshCcw, Receipt } from 'lucide-react-native';
+import { CheckCircle, XCircle, Clock, AlertCircle, Phone, RefreshCcw, Receipt, Calendar, Navigation } from 'lucide-react-native';
 import { useLazyGetPaymentStatusQuery } from '@/store/services/paymentApi';
 import CustomTabBar from '../components/CustomTabBar';
 
 type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
 
 export default function PaymentStatusScreen() {
-  const { frontendToken, phoneNumber } = useLocalSearchParams<{
+  const { frontendToken, phoneNumber, serviceName, locationName, latitude, longitude } = useLocalSearchParams<{
     frontendToken: string;
     phoneNumber: string;
+    serviceName?: string;
+    locationName?: string;
+    latitude?: string;
+    longitude?: string;
   }>();
   const [getPaymentStatus, { data: payment, isLoading, error }] = useLazyGetPaymentStatusQuery();
   const [timeElapsed, setTimeElapsed] = useState(0);
@@ -188,6 +192,14 @@ export default function PaymentStatusScreen() {
     }
   };
 
+  const formatAmount = () => {
+    if (!payment?.amount) return '';
+    const currency = payment.amount.currency || 'XAF';
+    const total = payment.amount.total;
+    if (total === undefined || total === null || isNaN(total)) return '';
+    return `${currency} ${Math.round(total).toLocaleString()}`;
+  };
+
   const getStatusMessage = () => {
     if (hasExpired) {
       return 'The payment request has expired. Please try booking again.';
@@ -204,7 +216,11 @@ export default function PaymentStatusScreen() {
     }
 
     if (payment.status === 'completed') {
-      return `Payment of ${payment.amount.currency} ${Math.round(payment.amount.total)} completed successfully! Your booking is confirmed and the provider has been notified.`;
+      const amount = formatAmount();
+      if (amount) {
+        return `Payment of ${amount} completed successfully! Your booking is confirmed and the provider has been notified.`;
+      }
+      return 'Payment completed successfully! Your booking is confirmed and the provider has been notified.';
     }
 
     if (payment.status === 'failed') {
@@ -230,16 +246,29 @@ export default function PaymentStatusScreen() {
     }
   };
 
-  const handleRetry = () => {
-    router.back();
+  const handleViewMyBookings = () => {
+    router.replace('/(tabs)/my-bookings' as any);
   };
 
-  const handleViewBooking = () => {
-    if (payment?.id) {
-      // Navigate to transaction details page instead of booking status
-      router.replace(`/booking/transaction-details?paymentId=${payment.id}` as any);
+  const handleViewRoute = () => {
+    const lat = latitude;
+    const lng = longitude;
+    const locName = locationName || 'Service Location';
+    const svcName = serviceName || payment?.appointment?.service || 'Service';
+
+    if (lat && lng) {
+      router.push({
+        pathname: '/view-location',
+        params: {
+          latitude: String(lat),
+          longitude: String(lng),
+          locationName: locName,
+          serviceName: svcName,
+          showRoute: 'true',
+        },
+      } as any);
     } else {
-      router.replace('/(tabs)/my-bookings' as any);
+      Alert.alert('Location Unavailable', 'Service location is not available for this booking.');
     }
   };
 
@@ -453,6 +482,34 @@ Thank you for using Mu Baku Lifestyle!
                     </Text>
                   </View>
                 )}
+              </View>
+            )}
+
+            {isCompleted && (
+              <View style={styles.successActions}>
+                <TouchableOpacity 
+                  style={styles.viewBookingsButton}
+                  onPress={handleViewMyBookings}
+                >
+                  <Calendar color="white" size={20} />
+                  <Text style={styles.viewBookingsButtonText}>View My Bookings</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.viewRouteButton}
+                  onPress={handleViewRoute}
+                >
+                  <Navigation color="white" size={20} />
+                  <Text style={styles.viewRouteButtonText}>Navigate to Location</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.viewReceiptButton}
+                  onPress={handleViewReceipt}
+                >
+                  <Receipt color="#2D1A46" size={20} />
+                  <Text style={styles.viewReceiptButtonText}>View Receipt</Text>
+                </TouchableOpacity>
               </View>
             )}
 
@@ -779,6 +836,56 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  successActions: {
+    width: '100%',
+    gap: 12,
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  viewBookingsButton: {
+    backgroundColor: '#2D1A46',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  viewBookingsButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  viewRouteButton: {
+    backgroundColor: '#10B981',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  viewRouteButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  viewReceiptButton: {
+    backgroundColor: 'white',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#2D1A46',
+  },
+  viewReceiptButtonText: {
+    color: '#2D1A46',
     fontSize: 16,
     fontWeight: '600',
   },
