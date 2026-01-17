@@ -202,17 +202,22 @@ export default function PaymentScreen() {
       console.log('[Payment] Payment initiated successfully');
       console.log('[Payment] Payment response:', JSON.stringify(paymentResponse, null, 2));
 
-      // Handle response structure
-      const paymentData = paymentResponse.payment;
+      // Handle both response structures: { payment: {...} } or direct {...}
+      const paymentData = paymentResponse?.payment || paymentResponse;
 
-      if (!paymentData || !paymentData.frontend_token) {
+      // Get frontend_token from the response
+      const frontendToken = paymentData?.frontend_token;
+
+      if (!frontendToken) {
+        console.error('[Payment] Response structure:', Object.keys(paymentResponse || {}));
+        console.error('[Payment] Payment data structure:', Object.keys(paymentData || {}));
         throw new Error('Frontend token not found in payment response');
       }
 
-      console.log('[Payment] Frontend token:', paymentData.frontend_token.substring(0, 8) + '...');
+      console.log('[Payment] Frontend token:', frontendToken.substring(0, 8) + '...');
 
       // Navigate to payment status page for polling
-      router.replace(`/booking/payment-status?frontendToken=${paymentData.frontend_token}&phoneNumber=${encodeURIComponent(phoneNumber)}` as any);
+      router.replace(`/booking/payment-status?frontendToken=${frontendToken}&phoneNumber=${encodeURIComponent(phoneNumber)}` as any);
     } catch (error: any) {
       console.error('[Payment] Error:', error?.status || 'Unknown');
 
