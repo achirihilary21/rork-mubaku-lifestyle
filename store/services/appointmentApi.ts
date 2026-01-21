@@ -15,7 +15,7 @@ interface Appointment {
   amount: number;
   currency: string;
   status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
-  payment_status?: 'held_in_escrow' | 'released' | 'refunded';
+  payment_status?: 'pending' | 'held_in_escrow' | 'released' | 'refunded' | 'failed' | 'expired';
   client?: any;
   provider?: any;
   service?: any;
