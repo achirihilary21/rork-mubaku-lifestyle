@@ -19,6 +19,10 @@ export default function PaymentStatusScreen() {
   const [getPaymentStatus, { data: payment, isLoading, error }] = useLazyGetPaymentStatusQuery();
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [hasExpired, setHasExpired] = useState(false);
+  const [pollingMessage, setPollingMessage] = useState('Processing payment, please wait…');
+  const [pollAttempts, setPollAttempts] = useState(0);
+  const MAX_POLL_ATTEMPTS = 60;
+  const TIMEOUT_SECONDS = 180;
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -49,26 +53,53 @@ export default function PaymentStatusScreen() {
       let pollCount = 0;
       pollingIntervalRef.current = setInterval(async () => {
         pollCount++;
-        console.log(`[PaymentStatus] Poll #${pollCount}`);
+        setPollAttempts(pollCount);
+        console.log(`[PaymentStatus] Poll #${pollCount}, status: ${payment?.status}, errorCode: ${payment?.gateway?.error_code}`);
 
-        if (pollCount >= 60) {
-          console.log('[PaymentStatus] Max polling attempts reached');
+        if (pollCount >= MAX_POLL_ATTEMPTS) {
+          console.log('[PaymentStatus] Max polling attempts reached (3 minutes)');
+          setHasExpired(true);
+          setPollingMessage('Payment could not be confirmed. Please retry.');
           stopPolling();
+          stopTimer();
           return;
         }
 
         try {
           const result = await getPaymentStatus(frontendToken);
+          const paymentData = result.data;
 
-          if (result.data?.polling?.stop) {
-            console.log('[PaymentStatus] Stopping polling:', result.data.polling.reason);
-            stopPolling();
-          }
+          console.log(`[PaymentStatus] Poll response - status: ${paymentData?.status}, errorCode: ${paymentData?.gateway?.error_code}, errorMessage: ${paymentData?.gateway?.error_message}`);
 
-          if (result.data?.status === 'completed' || result.data?.status === 'failed') {
-            console.log('[PaymentStatus] Final status reached:', result.data.status);
+          if (paymentData?.gateway?.error_code) {
+            console.log('[PaymentStatus] Error code detected:', paymentData.gateway.error_code);
+            const errorMsg = paymentData.gateway.error_message || paymentData.failure_details?.message || 'Payment failed. Please try again.';
+            setPollingMessage(errorMsg);
             stopPolling();
             stopTimer();
+            return;
+          }
+
+          if (paymentData?.status === 'completed' && !paymentData?.gateway?.error_code) {
+            console.log('[PaymentStatus] Payment successful!');
+            setPollingMessage('Payment successful. Booking confirmed!');
+            stopPolling();
+            stopTimer();
+            return;
+          }
+
+          if (paymentData?.status === 'failed') {
+            console.log('[PaymentStatus] Payment failed');
+            const errorMsg = paymentData.failure_details?.message || paymentData.gateway?.error_message || 'Payment could not be completed.';
+            setPollingMessage(errorMsg);
+            stopPolling();
+            stopTimer();
+            return;
+          }
+
+          if (paymentData?.polling?.stop) {
+            console.log('[PaymentStatus] Stopping polling:', paymentData.polling.reason);
+            stopPolling();
           }
         } catch (err) {
           console.error('[PaymentStatus] Polling error:', err);
@@ -82,10 +113,12 @@ export default function PaymentStatusScreen() {
       setTimeElapsed((prev) => {
         const newTime = prev + 1;
 
-        if (newTime >= 300) {
-          console.log('[PaymentStatus] Payment timeout reached (5 minutes)');
+        if (newTime >= TIMEOUT_SECONDS) {
+          console.log('[PaymentStatus] Payment timeout reached (3 minutes)');
           setHasExpired(true);
+          setPollingMessage('Payment could not be confirmed. Please retry.');
           stopPolling();
+          stopTimer();
         }
 
         return newTime;
@@ -147,7 +180,7 @@ export default function PaymentStatusScreen() {
   };
 
   const formatTimeRemaining = (seconds: number) => {
-    const remaining = Math.max(0, 300 - seconds);
+    const remaining = Math.max(0, TIMEOUT_SECONDS - seconds);
     const mins = Math.floor(remaining / 60);
     const secs = remaining % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -182,6 +215,10 @@ export default function PaymentStatusScreen() {
   };
 
   const getStatusTitle = (status: PaymentStatus) => {
+    if (payment?.gateway?.error_code) {
+      return 'Payment Failed';
+    }
+
     if (hasExpired && status !== 'completed') return 'Payment Timeout';
 
     switch (status) {
@@ -207,11 +244,15 @@ export default function PaymentStatusScreen() {
   };
 
   const getStatusMessage = () => {
-    if (hasExpired && payment?.status !== 'completed') {
-      return 'The payment request has expired. Please try booking again.';
+    if (payment?.gateway?.error_code) {
+      return payment.gateway.error_message || payment.failure_details?.message || 'Payment rejected. Please try again.';
     }
 
-    if (!payment) return 'Connecting to payment gateway...';
+    if (hasExpired && payment?.status !== 'completed') {
+      return 'Payment could not be confirmed. Please retry.';
+    }
+
+    if (!payment) return pollingMessage;
 
     if (payment.status === 'pending') {
       return `Check your phone (${phoneNumber}) for a USSD prompt. Dial the code shown on your screen to authorize the payment.`;
@@ -221,20 +262,20 @@ export default function PaymentStatusScreen() {
       return 'Your payment is being processed. This usually takes 30-60 seconds. Please wait...';
     }
 
-    if (payment.status === 'completed') {
+    if (payment.status === 'completed' && !payment.gateway?.error_code) {
       const amount = formatAmount();
       if (amount) {
         return `Payment of ${amount} completed successfully! Your booking is confirmed and the provider has been notified.`;
       }
-      return 'Payment completed successfully! Your booking is confirmed and the provider has been notified.';
+      return 'Payment successful. Booking confirmed!';
     }
 
     if (payment.status === 'failed') {
-      const failureMessage = payment.failure_details?.message || 'Payment could not be completed';
+      const failureMessage = payment.failure_details?.message || payment.gateway?.error_message || 'Payment could not be completed';
       return failureMessage;
     }
 
-    return payment.instructions?.message || 'Setting up your payment...';
+    return payment.instructions?.message || pollingMessage;
   };
 
   const getStatusColor = (status: PaymentStatus) => {
@@ -286,6 +327,10 @@ export default function PaymentStatusScreen() {
     console.log('[PaymentStatus] Contact support requested');
     console.log('[PaymentStatus] Payment ID:', payment?.id);
     console.log('[PaymentStatus] Frontend Token:', frontendToken?.substring(0, 8) + '...');
+  };
+
+  const handleRetryPayment = () => {
+    router.back();
   };
 
   const handleViewReceipt = () => {
@@ -388,10 +433,11 @@ Thank you for using Mu Baku Lifestyle!
   }
 
   const status = payment?.status || 'pending';
-  const isCompleted = status === 'completed';
-  const isProcessing = (status === 'pending' || status === 'processing') && !isCompleted;
-  const isFailed = status === 'failed' || (hasExpired && !isCompleted);
-  const statusColor = getStatusColor(status);
+  const hasErrorCode = !!payment?.gateway?.error_code;
+  const isCompleted = status === 'completed' && !hasErrorCode;
+  const isProcessing = (status === 'pending' || status === 'processing') && !isCompleted && !hasErrorCode && !hasExpired;
+  const isFailed = status === 'failed' || hasErrorCode || (hasExpired && !isCompleted);
+  const statusColor = getStatusColor(isFailed ? 'failed' : status);
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F5F5F5' }}>
@@ -403,7 +449,7 @@ Thank you for using Mu Baku Lifestyle!
         >
           <View style={styles.content}>
             <View style={styles.iconContainer}>
-              {hasExpired && !isCompleted ? <XCircle color="#EF4444" size={80} /> : getStatusIcon(status)}
+              {(hasExpired && !isCompleted) || hasErrorCode ? <XCircle color="#EF4444" size={80} /> : getStatusIcon(status)}
             </View>
 
             <Text style={[styles.title, { color: isFailed ? '#EF4444' : '#2D1A46' }]}>
@@ -421,21 +467,19 @@ Thank you for using Mu Baku Lifestyle!
                   <Text style={styles.timerText}>Timeout: {formatTimeRemaining(timeElapsed)}</Text>
                 </View>
 
-                {payment?.state_machine && (
-                  <View style={styles.progressContainer}>
-                    <View style={styles.progressBar}>
-                      <View
-                        style={[
-                          styles.progressFill,
-                          { width: `${payment.state_machine.progress}%`, backgroundColor: statusColor }
-                        ]}
-                      />
-                    </View>
-                    <Text style={styles.progressText}>
-                      {payment.state_machine.current.replace(/_/g, ' ').toUpperCase()}
-                    </Text>
+                <View style={styles.progressContainer}>
+                  <View style={styles.progressBar}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        { width: `${Math.min((pollAttempts / MAX_POLL_ATTEMPTS) * 100, 100)}%`, backgroundColor: statusColor }
+                      ]}
+                    />
                   </View>
-                )}
+                  <Text style={styles.progressText}>
+                    {payment?.state_machine?.current?.replace(/_/g, ' ').toUpperCase() || `VERIFYING (${pollAttempts}/${MAX_POLL_ATTEMPTS})`}
+                  </Text>
+                </View>
 
                 <View style={styles.instructionCard}>
                   <View style={styles.instructionHeader}>
@@ -536,15 +580,54 @@ Thank you for using Mu Baku Lifestyle!
               </View>
             )}
 
-            {hasExpired && !isCompleted && (
+            {hasErrorCode && (
+              <View style={styles.errorCard}>
+                <View style={styles.errorHeader}>
+                  <AlertCircle size={24} color="#EF4444" />
+                  <Text style={styles.errorTitle}>
+                    {payment?.gateway?.error_code?.replace(/_/g, ' ') || 'Payment Error'}
+                  </Text>
+                </View>
+                <Text style={styles.errorMessage}>
+                  {payment?.gateway?.error_message || payment?.failure_details?.message || 'Payment rejected. Please try again.'}
+                </Text>
+                <Text style={styles.retryHint}>
+                  ✓ You can try again with the same or a different payment method
+                </Text>
+              </View>
+            )}
+
+            {hasExpired && !isCompleted && !hasErrorCode && (
               <View style={styles.errorCard}>
                 <View style={styles.errorHeader}>
                   <Clock size={24} color="#EF4444" />
-                  <Text style={styles.errorTitle}>Payment Expired</Text>
+                  <Text style={styles.errorTitle}>Payment Timeout</Text>
                 </View>
                 <Text style={styles.errorMessage}>
-                  The payment request expired after 5 minutes. No charges were made to your account.
+                  Payment could not be confirmed after 3 minutes. No charges were made to your account.
                 </Text>
+                <Text style={styles.retryHint}>
+                  ✓ You can try again with the same or a different payment method
+                </Text>
+              </View>
+            )}
+
+            {isFailed && (
+              <View style={styles.failedActions}>
+                <TouchableOpacity 
+                  style={styles.retryButton}
+                  onPress={handleRetryPayment}
+                >
+                  <RefreshCcw color="white" size={20} />
+                  <Text style={styles.retryButtonText}>Try Again</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.goHomeButton}
+                  onPress={handleGoHome}
+                >
+                  <Text style={styles.goHomeButtonText}>Go to Home</Text>
+                </TouchableOpacity>
               </View>
             )}
           </View>
@@ -891,6 +974,42 @@ const styles = StyleSheet.create({
     borderColor: '#2D1A46',
   },
   viewReceiptButtonText: {
+    color: '#2D1A46',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  failedActions: {
+    width: '100%',
+    gap: 12,
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: '#2D1A46',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  goHomeButton: {
+    backgroundColor: 'white',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#2D1A46',
+  },
+  goHomeButtonText: {
     color: '#2D1A46',
     fontSize: 16,
     fontWeight: '600',
