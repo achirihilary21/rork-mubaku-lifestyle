@@ -129,28 +129,7 @@ export default function BookingSummary() {
                 </Text>
               </View>
 
-              <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>App Fee</Text>
-                <Text style={styles.priceValue}>
-                  {service.currency} {Math.floor(Number(service.price) * 0.05)}
-                </Text>
-              </View>
-
-              <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>Taxes</Text>
-                <Text style={styles.priceValue}>
-                  {service.currency} {Math.floor(Number(service.price) * 0.18)}
-                </Text>
-              </View>
-
               <View style={styles.priceDivider} />
-
-              <View style={styles.priceRow}>
-                <Text style={styles.totalLabel}>Total</Text>
-                <Text style={styles.totalValue}>
-                  {service.currency} {Math.floor(Number(service.price) * 1.23)}
-                </Text>
-              </View>
             </View>
 
             <Text style={styles.priceNote}>
