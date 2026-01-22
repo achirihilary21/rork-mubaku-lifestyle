@@ -26,6 +26,8 @@ export default function PaymentStatusScreen() {
   const [capturedStatus, setCapturedStatus] = useState<PaymentStatus | null>(null);
   const [finalStatusLocked, setFinalStatusLocked] = useState(false);
   const finalStatusLockedRef = useRef(false);
+  const capturedErrorMessageRef = useRef<string | null>(null);
+  const capturedErrorCodeRef = useRef<number | string | null>(null);
   const MAX_POLL_ATTEMPTS = 40;
   const TIMEOUT_SECONDS = 120;
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -72,6 +74,7 @@ export default function PaymentStatusScreen() {
         if (pollCount >= MAX_POLL_ATTEMPTS) {
           console.log('[PaymentStatus] Max polling attempts reached (2 minutes)');
           setHasExpired(true);
+          capturedErrorMessageRef.current = 'Payment could not be confirmed. Please try again.';
           setCapturedErrorMessage('Payment could not be confirmed. Please try again.');
           setPollingMessage('Payment could not be confirmed. Please try again.');
           setFinalStatusLocked(true);
@@ -95,7 +98,7 @@ export default function PaymentStatusScreen() {
           if (currentStatus !== 'pending') {
             console.log(`[PaymentStatus] Status is ${currentStatus}, stopping polling`);
             
-            // Lock final status and capture all values
+            // Lock final status and capture all values IMMEDIATELY using refs
             setCapturedStatus(currentStatus as PaymentStatus);
             
             if (currentStatus === 'completed' && !errCode) {
@@ -105,8 +108,17 @@ export default function PaymentStatusScreen() {
             } else {
               // Failed or any other non-pending status with error
               console.log('[PaymentStatus] Payment failed or has error');
-              if (errCode) setCapturedErrorCode(errCode);
-              if (errMsg) setCapturedErrorMessage(errMsg);
+              console.log(`[PaymentStatus] Capturing error - code: ${errCode}, message: ${errMsg}`);
+              
+              // Use refs to capture immediately (avoid state timing issues)
+              if (errCode) {
+                capturedErrorCodeRef.current = errCode;
+                setCapturedErrorCode(errCode);
+              }
+              if (errMsg) {
+                capturedErrorMessageRef.current = errMsg;
+                setCapturedErrorMessage(errMsg);
+              }
               setPollingMessage(errMsg || 'Payment could not be completed.');
             }
             
@@ -135,6 +147,7 @@ export default function PaymentStatusScreen() {
           console.log('[PaymentStatus] Payment timeout reached (2 minutes)');
           setHasExpired(true);
           setCapturedStatus('failed');
+          capturedErrorMessageRef.current = 'Payment could not be confirmed. Please try again.';
           setCapturedErrorMessage('Payment could not be confirmed. Please try again.');
           setPollingMessage('Payment could not be confirmed. Please try again.');
           setFinalStatusLocked(true);
@@ -466,12 +479,12 @@ Thank you for using Mu Baku Lifestyle!
   const status: PaymentStatus = finalStatusLocked && capturedStatus ? capturedStatus : (payment?.status || 'pending');
   const paymentAny = payment as any;
   
-  // Once locked, use only captured error values
-  const errorCode = finalStatusLocked 
-    ? capturedErrorCode 
+  // Once locked, use only captured error values from refs (they're set immediately, unlike state)
+  const errorCode = finalStatusLockedRef.current 
+    ? (capturedErrorCodeRef.current || capturedErrorCode)
     : (capturedErrorCode || paymentAny?.errorCode || payment?.gateway?.error_code);
-  const errorMessage = finalStatusLocked 
-    ? capturedErrorMessage 
+  const errorMessage = finalStatusLockedRef.current 
+    ? (capturedErrorMessageRef.current || capturedErrorMessage)
     : (capturedErrorMessage || paymentAny?.errorMessage || payment?.gateway?.error_message || payment?.failure_details?.message);
   const hasErrorCode = !!errorCode;
   
