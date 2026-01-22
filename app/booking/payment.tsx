@@ -556,30 +556,6 @@ export default function PaymentScreen() {
           )}
         </ScrollView>
 
-        {/* Quick Summary & Pay Button - Positioned higher for better Android UX */}
-        {/* {paymentMethod && selectedMethodData && (
-          <View style={styles.quickSummaryContainer}>
-            <View style={styles.quickSummaryCard}>
-              <View style={styles.quickSummaryRow}>
-                <Text style={styles.quickSummaryLabel}>Service:</Text>
-                <Text style={styles.quickSummaryValue}>{amount} {currency}</Text>
-              </View>
-              <View style={styles.quickSummaryRow}>
-                <Text style={styles.quickSummaryLabel}>Gateway Fee:</Text>
-                <Text style={styles.quickSummaryValue}>{currency} {Math.round(calculateGatewayFee())}</Text>
-              </View>
-              <View style={styles.quickSummaryDivider} />
-              <View style={styles.quickSummaryRow}>
-                <Text style={styles.quickSummaryTotalLabel}>Total:</Text>
-                <Text style={styles.quickSummaryTotalValue}>{currency} {Math.round(calculateTotalAmount())}</Text>
-              </View>
-              <Text style={styles.quickSummaryNote}>
-                💰 Funds held securely in escrow until service completion
-              </Text>
-            </View>
-          </View>
-        )} */}
-
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             ref={payButtonRef}

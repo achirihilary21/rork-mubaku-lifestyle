@@ -54,7 +54,8 @@ export default function PaymentStatusScreen() {
       pollingIntervalRef.current = setInterval(async () => {
         pollCount++;
         setPollAttempts(pollCount);
-        console.log(`[PaymentStatus] Poll #${pollCount}, status: ${payment?.status}, errorCode: ${payment?.gateway?.error_code}`);
+        const currentPayment: any = payment;
+        console.log(`[PaymentStatus] Poll #${pollCount}, status: ${currentPayment?.status}, errorCode: ${currentPayment?.gateway?.error_code || currentPayment?.errorCode}`);
 
         if (pollCount >= MAX_POLL_ATTEMPTS) {
           console.log('[PaymentStatus] Max polling attempts reached (3 minutes)');
@@ -67,20 +68,20 @@ export default function PaymentStatusScreen() {
 
         try {
           const result = await getPaymentStatus(frontendToken);
-          const paymentData = result.data;
+          const paymentData = result.data as any; // Cast to any to access potential custom error properties
 
-          console.log(`[PaymentStatus] Poll response - status: ${paymentData?.status}, errorCode: ${paymentData?.gateway?.error_code}, errorMessage: ${paymentData?.gateway?.error_message}`);
+          console.log(`[PaymentStatus] Poll response - status: ${paymentData?.status}, errorCode: ${paymentData?.gateway?.error_code || paymentData?.errorCode}, errorMessage: ${paymentData?.errorMessage || paymentData?.gateway?.error_message}`);
 
-          if (paymentData?.gateway?.error_code) {
-            console.log('[PaymentStatus] Error code detected:', paymentData.gateway.error_code);
-            const errorMsg = paymentData.gateway.error_message || paymentData.failure_details?.message || 'Payment failed. Please try again.';
+          if (paymentData?.gateway?.error_code || paymentData?.errorCode) {
+            console.log('[PaymentStatus] Error code detected:', paymentData.gateway.error_code || paymentData.errorCode);
+            const errorMsg = paymentData.errorMessage || paymentData.gateway?.error_message || paymentData.failure_details?.message || 'Payment failed. Please try again.';
             setPollingMessage(errorMsg);
             stopPolling();
             stopTimer();
             return;
           }
 
-          if (paymentData?.status === 'completed' && !paymentData?.gateway?.error_code) {
+          if (paymentData?.status === 'completed' && !(paymentData?.gateway?.error_code || paymentData?.errorCode)) {
             console.log('[PaymentStatus] Payment successful!');
             setPollingMessage('Payment successful. Booking confirmed!');
             stopPolling();
@@ -90,7 +91,7 @@ export default function PaymentStatusScreen() {
 
           if (paymentData?.status === 'failed') {
             console.log('[PaymentStatus] Payment failed');
-            const errorMsg = paymentData.failure_details?.message || paymentData.gateway?.error_message || 'Payment could not be completed.';
+            const errorMsg = paymentData.errorMessage || paymentData.failure_details?.message || paymentData.gateway?.error_message || 'Payment could not be completed.';
             setPollingMessage(errorMsg);
             stopPolling();
             stopTimer();
@@ -215,7 +216,8 @@ export default function PaymentStatusScreen() {
   };
 
   const getStatusTitle = (status: PaymentStatus) => {
-    if (payment?.gateway?.error_code) {
+    const paymentData: any = payment;
+    if (paymentData?.gateway?.error_code || paymentData?.errorCode) {
       return 'Payment Failed';
     }
 
@@ -244,8 +246,12 @@ export default function PaymentStatusScreen() {
   };
 
   const getStatusMessage = () => {
-    if (payment?.gateway?.error_code) {
-      return payment.gateway.error_message || payment.failure_details?.message || 'Payment rejected. Please try again.';
+    const paymentData: any = payment;
+    const hasError = paymentData?.gateway?.error_code || paymentData?.errorCode;
+    const errorMessage = paymentData?.errorMessage || paymentData?.gateway?.error_message || paymentData?.failure_details?.message;
+
+    if (hasError) {
+      return errorMessage || 'Payment rejected. Please try again.';
     }
 
     if (hasExpired && payment?.status !== 'completed') {
@@ -262,7 +268,7 @@ export default function PaymentStatusScreen() {
       return 'Your payment is being processed. This usually takes 30-60 seconds. Please wait...';
     }
 
-    if (payment.status === 'completed' && !payment.gateway?.error_code) {
+    if (payment.status === 'completed' && !hasError) {
       const amount = formatAmount();
       if (amount) {
         return `Payment of ${amount} completed successfully! Your booking is confirmed and the provider has been notified.`;
@@ -271,8 +277,7 @@ export default function PaymentStatusScreen() {
     }
 
     if (payment.status === 'failed') {
-      const failureMessage = payment.failure_details?.message || payment.gateway?.error_message || 'Payment could not be completed';
-      return failureMessage;
+      return errorMessage || 'Payment could not be completed';
     }
 
     return payment.instructions?.message || pollingMessage;
@@ -432,8 +437,9 @@ Thank you for using Mu Baku Lifestyle!
     );
   }
 
-  const status = payment?.status || 'pending';
-  const hasErrorCode = !!payment?.gateway?.error_code;
+  const paymentData: any = payment;
+  const status = paymentData?.status || 'pending';
+  const hasErrorCode = !!(paymentData?.gateway?.error_code || paymentData?.errorCode);
   const isCompleted = status === 'completed' && !hasErrorCode;
   const isProcessing = (status === 'pending' || status === 'processing') && !isCompleted && !hasErrorCode && !hasExpired;
   const isFailed = status === 'failed' || hasErrorCode || (hasExpired && !isCompleted);
@@ -585,11 +591,11 @@ Thank you for using Mu Baku Lifestyle!
                 <View style={styles.errorHeader}>
                   <AlertCircle size={24} color="#EF4444" />
                   <Text style={styles.errorTitle}>
-                    {payment?.gateway?.error_code?.replace(/_/g, ' ') || 'Payment Error'}
+                    {(paymentData?.errorCode || paymentData?.gateway?.error_code)?.toString().replace(/_/g, ' ') || 'Payment Error'}
                   </Text>
                 </View>
                 <Text style={styles.errorMessage}>
-                  {payment?.gateway?.error_message || payment?.failure_details?.message || 'Payment rejected. Please try again.'}
+                  {paymentData?.errorMessage || paymentData?.gateway?.error_message || paymentData?.failure_details?.message || 'Payment rejected. Please try again.'}
                 </Text>
                 <Text style={styles.retryHint}>
                   ✓ You can try again with the same or a different payment method
