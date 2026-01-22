@@ -23,6 +23,7 @@ export default function PaymentStatusScreen() {
   const [pollAttempts, setPollAttempts] = useState(0);
   const [capturedErrorCode, setCapturedErrorCode] = useState<number | string | null>(null);
   const [capturedErrorMessage, setCapturedErrorMessage] = useState<string | null>(null);
+  const [capturedStatus, setCapturedStatus] = useState<PaymentStatus | null>(null);
   const [finalStatusLocked, setFinalStatusLocked] = useState(false);
   const finalStatusLockedRef = useRef(false);
   const MAX_POLL_ATTEMPTS = 40;
@@ -94,6 +95,9 @@ export default function PaymentStatusScreen() {
           if (currentStatus !== 'pending') {
             console.log(`[PaymentStatus] Status is ${currentStatus}, stopping polling`);
             
+            // Lock final status and capture all values
+            setCapturedStatus(currentStatus as PaymentStatus);
+            
             if (currentStatus === 'completed' && !errCode) {
               // Success case
               console.log('[PaymentStatus] Payment successful!');
@@ -102,7 +106,7 @@ export default function PaymentStatusScreen() {
               // Failed or any other non-pending status with error
               console.log('[PaymentStatus] Payment failed or has error');
               if (errCode) setCapturedErrorCode(errCode);
-              setCapturedErrorMessage(errMsg || 'Payment could not be completed.');
+              if (errMsg) setCapturedErrorMessage(errMsg);
               setPollingMessage(errMsg || 'Payment could not be completed.');
             }
             
@@ -130,6 +134,7 @@ export default function PaymentStatusScreen() {
         if (newTime >= TIMEOUT_SECONDS && !finalStatusLockedRef.current) {
           console.log('[PaymentStatus] Payment timeout reached (2 minutes)');
           setHasExpired(true);
+          setCapturedStatus('failed');
           setCapturedErrorMessage('Payment could not be confirmed. Please try again.');
           setPollingMessage('Payment could not be confirmed. Please try again.');
           setFinalStatusLocked(true);
@@ -457,23 +462,22 @@ Thank you for using Mu Baku Lifestyle!
     );
   }
 
-  const status = payment?.status || 'pending';
+  // Once locked, use ONLY captured values - ignore payment object completely
+  const status: PaymentStatus = finalStatusLocked && capturedStatus ? capturedStatus : (payment?.status || 'pending');
   const paymentAny = payment as any;
   
-  // Once locked, prioritize captured values to prevent flickering
-  const hasErrorCode = finalStatusLocked 
-    ? !!capturedErrorCode 
-    : (!!capturedErrorCode || !!paymentAny?.errorCode || !!payment?.gateway?.error_code);
+  // Once locked, use only captured error values
   const errorCode = finalStatusLocked 
     ? capturedErrorCode 
     : (capturedErrorCode || paymentAny?.errorCode || payment?.gateway?.error_code);
   const errorMessage = finalStatusLocked 
     ? capturedErrorMessage 
     : (capturedErrorMessage || paymentAny?.errorMessage || payment?.gateway?.error_message || payment?.failure_details?.message);
+  const hasErrorCode = !!errorCode;
   
-  const isCompleted = status === 'completed' && !hasErrorCode && !capturedErrorCode;
-  const isProcessing = (status === 'pending' || status === 'processing') && !isCompleted && !hasErrorCode && !hasExpired && !finalStatusLocked;
-  const isFailed = status === 'failed' || hasErrorCode || capturedErrorCode || (hasExpired && !isCompleted);
+  const isCompleted = status === 'completed' && !hasErrorCode;
+  const isProcessing = !finalStatusLocked && (status === 'pending' || status === 'processing') && !hasErrorCode && !hasExpired;
+  const isFailed = finalStatusLocked ? (status === 'failed' || hasErrorCode || hasExpired) : (status === 'failed' || hasErrorCode || (hasExpired && !isCompleted));
   const statusColor = getStatusColor(isFailed ? 'failed' : status);
 
   return (
@@ -495,12 +499,6 @@ Thank you for using Mu Baku Lifestyle!
                 </Text>
 
                 <View style={styles.fancyErrorCard}>
-                  <View style={styles.fancyErrorHeader}>
-                    <AlertCircle size={24} color="#B91C1C" />
-                    <Text style={styles.fancyErrorTitle}>
-                      {getErrorTitle()}
-                    </Text>
-                  </View>
                   <Text style={styles.fancyErrorMessageLarge}>
                     {errorMessage || (hasExpired ? 'The request timed out while waiting for payment confirmation. Please check your balance and try again.' : 'Payment could not be completed.')}
                   </Text>
