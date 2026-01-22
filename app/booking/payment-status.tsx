@@ -25,8 +25,8 @@ export default function PaymentStatusScreen() {
   const [capturedErrorMessage, setCapturedErrorMessage] = useState<string | null>(null);
   const [finalStatusLocked, setFinalStatusLocked] = useState(false);
   const finalStatusLockedRef = useRef(false);
-  const MAX_POLL_ATTEMPTS = 60;
-  const TIMEOUT_SECONDS = 180;
+  const MAX_POLL_ATTEMPTS = 40;
+  const TIMEOUT_SECONDS = 120;
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -56,7 +56,7 @@ export default function PaymentStatusScreen() {
 
       let pollCount = 0;
       pollingIntervalRef.current = setInterval(async () => {
-        // Check if status is already locked (error captured or completed) - stop immediately
+        // Check if status is already locked - stop immediately
         if (finalStatusLockedRef.current) {
           console.log('[PaymentStatus] Status already locked, stopping poll');
           stopPolling();
@@ -66,13 +66,15 @@ export default function PaymentStatusScreen() {
 
         pollCount++;
         setPollAttempts(pollCount);
-        const currentPayment: any = payment;
-        console.log(`[PaymentStatus] Poll #${pollCount}, status: ${currentPayment?.status}, errorCode: ${currentPayment?.gateway?.error_code || currentPayment?.errorCode}`);
+        console.log(`[PaymentStatus] Poll #${pollCount}`);
 
         if (pollCount >= MAX_POLL_ATTEMPTS) {
-          console.log('[PaymentStatus] Max polling attempts reached (3 minutes)');
+          console.log('[PaymentStatus] Max polling attempts reached (2 minutes)');
           setHasExpired(true);
-          setPollingMessage('Payment could not be confirmed. Please retry.');
+          setCapturedErrorMessage('Payment could not be confirmed. Please try again.');
+          setPollingMessage('Payment could not be confirmed. Please try again.');
+          setFinalStatusLocked(true);
+          finalStatusLockedRef.current = true;
           stopPolling();
           stopTimer();
           return;
@@ -80,18 +82,30 @@ export default function PaymentStatusScreen() {
 
         try {
           const result = await getPaymentStatus(frontendToken);
-          const paymentData = result.data as any; // Cast to any to access potential custom error properties
+          const paymentData = result.data as any;
 
-          console.log(`[PaymentStatus] Poll response - status: ${paymentData?.status}, errorCode: ${paymentData?.gateway?.error_code || paymentData?.errorCode}, errorMessage: ${paymentData?.errorMessage || paymentData?.gateway?.error_message}`);
+          const currentStatus = paymentData?.status;
+          const errCode = paymentData?.errorCode;
+          const errMsg = paymentData?.errorMessage;
 
-          const detectedErrorCode = paymentData?.errorCode || paymentData?.gateway?.error_code;
-          if (detectedErrorCode && !finalStatusLockedRef.current) {
-            console.log('[PaymentStatus] Error code detected:', detectedErrorCode);
-            const errorMsg = paymentData?.errorMessage || paymentData?.gateway?.error_message || paymentData?.failure_details?.message || 'Payment failed. Please try again.';
-            console.log('[PaymentStatus] Error message:', errorMsg);
-            setCapturedErrorCode(detectedErrorCode);
-            setCapturedErrorMessage(errorMsg);
-            setPollingMessage(errorMsg);
+          console.log(`[PaymentStatus] Poll response - status: ${currentStatus}, errorCode: ${errCode}, errorMessage: ${errMsg}`);
+
+          // If status is NOT pending, stop polling immediately
+          if (currentStatus !== 'pending') {
+            console.log(`[PaymentStatus] Status is ${currentStatus}, stopping polling`);
+            
+            if (currentStatus === 'completed' && !errCode) {
+              // Success case
+              console.log('[PaymentStatus] Payment successful!');
+              setPollingMessage('Payment successful. Booking confirmed!');
+            } else {
+              // Failed or any other non-pending status with error
+              console.log('[PaymentStatus] Payment failed or has error');
+              if (errCode) setCapturedErrorCode(errCode);
+              setCapturedErrorMessage(errMsg || 'Payment could not be completed.');
+              setPollingMessage(errMsg || 'Payment could not be completed.');
+            }
+            
             setFinalStatusLocked(true);
             finalStatusLockedRef.current = true;
             stopPolling();
@@ -99,34 +113,8 @@ export default function PaymentStatusScreen() {
             return;
           }
 
-          if (paymentData?.status === 'completed' && !detectedErrorCode && !finalStatusLockedRef.current) {
-            console.log('[PaymentStatus] Payment successful!');
-            setPollingMessage('Payment successful. Booking confirmed!');
-            setFinalStatusLocked(true);
-            finalStatusLockedRef.current = true;
-            stopPolling();
-            stopTimer();
-            return;
-          }
-
-          if (paymentData?.status === 'failed' && !finalStatusLockedRef.current) {
-            console.log('[PaymentStatus] Payment failed');
-            const errorMsg = paymentData.errorMessage || paymentData.failure_details?.message || paymentData.gateway?.error_message || 'Payment could not be completed.';
-            const errCode = paymentData.errorCode || paymentData.gateway?.error_code;
-            if (errCode) setCapturedErrorCode(errCode);
-            setCapturedErrorMessage(errorMsg);
-            setPollingMessage(errorMsg);
-            setFinalStatusLocked(true);
-            finalStatusLockedRef.current = true;
-            stopPolling();
-            stopTimer();
-            return;
-          }
-
-          if (paymentData?.polling?.stop) {
-            console.log('[PaymentStatus] Stopping polling:', paymentData.polling.reason);
-            stopPolling();
-          }
+          // Status is pending - continue polling
+          console.log('[PaymentStatus] Status is pending, continuing to poll...');
         } catch (err) {
           console.error('[PaymentStatus] Polling error:', err);
         }
@@ -139,10 +127,13 @@ export default function PaymentStatusScreen() {
       setTimeElapsed((prev) => {
         const newTime = prev + 1;
 
-        if (newTime >= TIMEOUT_SECONDS) {
-          console.log('[PaymentStatus] Payment timeout reached (3 minutes)');
+        if (newTime >= TIMEOUT_SECONDS && !finalStatusLockedRef.current) {
+          console.log('[PaymentStatus] Payment timeout reached (2 minutes)');
           setHasExpired(true);
-          setPollingMessage('Payment could not be confirmed. Please retry.');
+          setCapturedErrorMessage('Payment could not be confirmed. Please try again.');
+          setPollingMessage('Payment could not be confirmed. Please try again.');
+          setFinalStatusLocked(true);
+          finalStatusLockedRef.current = true;
           stopPolling();
           stopTimer();
         }
