@@ -21,18 +21,13 @@ export default function PaymentStatusScreen() {
   const [hasExpired, setHasExpired] = useState(false);
   const [pollingMessage, setPollingMessage] = useState('Processing payment, please wait…');
   const [pollAttempts, setPollAttempts] = useState(0);
-  const [finalResult, setFinalResult] = useState<{
-    status: PaymentStatus;
-    errorCode: number | string | null;
-    errorMessage: string | null;
-    locked: boolean;
-  } | null>(null);
-  const finalResultRef = useRef<{
-    status: PaymentStatus;
-    errorCode: number | string | null;
-    errorMessage: string | null;
-    locked: boolean;
-  } | null>(null);
+  const [capturedErrorCode, setCapturedErrorCode] = useState<number | string | null>(null);
+  const [capturedErrorMessage, setCapturedErrorMessage] = useState<string | null>(null);
+  const [capturedStatus, setCapturedStatus] = useState<PaymentStatus | null>(null);
+  const [finalStatusLocked, setFinalStatusLocked] = useState(false);
+  const finalStatusLockedRef = useRef(false);
+  const capturedErrorMessageRef = useRef<string | null>(null);
+  const capturedErrorCodeRef = useRef<number | string | null>(null);
   const MAX_POLL_ATTEMPTS = 40;
   const TIMEOUT_SECONDS = 120;
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -65,7 +60,7 @@ export default function PaymentStatusScreen() {
       let pollCount = 0;
       pollingIntervalRef.current = setInterval(async () => {
         // Check if status is already locked - stop immediately
-        if (finalResultRef.current?.locked) {
+        if (finalStatusLockedRef.current) {
           console.log('[PaymentStatus] Status already locked, stopping poll');
           stopPolling();
           stopTimer();
@@ -79,15 +74,11 @@ export default function PaymentStatusScreen() {
         if (pollCount >= MAX_POLL_ATTEMPTS) {
           console.log('[PaymentStatus] Max polling attempts reached (2 minutes)');
           setHasExpired(true);
-          const result = {
-            status: 'failed' as PaymentStatus,
-            errorCode: null,
-            errorMessage: 'Payment could not be confirmed. Please try again.',
-            locked: true,
-          };
-          finalResultRef.current = result;
-          setFinalResult(result);
+          capturedErrorMessageRef.current = 'Payment could not be confirmed. Please try again.';
+          setCapturedErrorMessage('Payment could not be confirmed. Please try again.');
           setPollingMessage('Payment could not be confirmed. Please try again.');
+          setFinalStatusLocked(true);
+          finalStatusLockedRef.current = true;
           stopPolling();
           stopTimer();
           return;
@@ -106,26 +97,33 @@ export default function PaymentStatusScreen() {
           // If status is NOT pending, stop polling immediately
           if (currentStatus !== 'pending') {
             console.log(`[PaymentStatus] Status is ${currentStatus}, stopping polling`);
-            console.log(`[PaymentStatus] Locking final result - code: ${errCode}, message: ${errMsg}`);
             
-            // Lock EVERYTHING in one atomic operation
-            const result = {
-              status: currentStatus as PaymentStatus,
-              errorCode: errCode || null,
-              errorMessage: errMsg || null,
-              locked: true,
-            };
-            
-            // Set ref FIRST (synchronous), then state
-            finalResultRef.current = result;
-            setFinalResult(result);
+            // Lock final status and capture all values IMMEDIATELY using refs
+            setCapturedStatus(currentStatus as PaymentStatus);
             
             if (currentStatus === 'completed' && !errCode) {
+              // Success case
+              console.log('[PaymentStatus] Payment successful!');
               setPollingMessage('Payment successful. Booking confirmed!');
             } else {
+              // Failed or any other non-pending status with error
+              console.log('[PaymentStatus] Payment failed or has error');
+              console.log(`[PaymentStatus] Capturing error - code: ${errCode}, message: ${errMsg}`);
+              
+              // Use refs to capture immediately (avoid state timing issues)
+              if (errCode) {
+                capturedErrorCodeRef.current = errCode;
+                setCapturedErrorCode(errCode);
+              }
+              if (errMsg) {
+                capturedErrorMessageRef.current = errMsg;
+                setCapturedErrorMessage(errMsg);
+              }
               setPollingMessage(errMsg || 'Payment could not be completed.');
             }
             
+            setFinalStatusLocked(true);
+            finalStatusLockedRef.current = true;
             stopPolling();
             stopTimer();
             return;
@@ -145,18 +143,15 @@ export default function PaymentStatusScreen() {
       setTimeElapsed((prev) => {
         const newTime = prev + 1;
 
-        if (newTime >= TIMEOUT_SECONDS && !finalResultRef.current?.locked) {
+        if (newTime >= TIMEOUT_SECONDS && !finalStatusLockedRef.current) {
           console.log('[PaymentStatus] Payment timeout reached (2 minutes)');
           setHasExpired(true);
-          const result = {
-            status: 'failed' as PaymentStatus,
-            errorCode: null,
-            errorMessage: 'Payment could not be confirmed. Please try again.',
-            locked: true,
-          };
-          finalResultRef.current = result;
-          setFinalResult(result);
+          setCapturedStatus('failed');
+          capturedErrorMessageRef.current = 'Payment could not be confirmed. Please try again.';
+          setCapturedErrorMessage('Payment could not be confirmed. Please try again.');
           setPollingMessage('Payment could not be confirmed. Please try again.');
+          setFinalStatusLocked(true);
+          finalStatusLockedRef.current = true;
           stopPolling();
           stopTimer();
         }
@@ -480,18 +475,22 @@ Thank you for using Mu Baku Lifestyle!
     );
   }
 
-  // CRITICAL: Once locked, use ONLY the frozen finalResult - completely ignore payment object
-  const isLocked = finalResultRef.current?.locked || finalResult?.locked;
-  const frozenResult = finalResultRef.current || finalResult;
+  // Once locked, use ONLY captured values - ignore payment object completely
+  const status: PaymentStatus = finalStatusLocked && capturedStatus ? capturedStatus : (payment?.status || 'pending');
+  const paymentAny = payment as any;
   
-  const status: PaymentStatus = isLocked && frozenResult ? frozenResult.status : (payment?.status || 'pending');
-  const errorCode = isLocked && frozenResult ? frozenResult.errorCode : null;
-  const errorMessage = isLocked && frozenResult ? frozenResult.errorMessage : null;
+  // Once locked, use only captured error values from refs (they're set immediately, unlike state)
+  const errorCode = finalStatusLockedRef.current 
+    ? (capturedErrorCodeRef.current || capturedErrorCode)
+    : (capturedErrorCode || paymentAny?.errorCode || payment?.gateway?.error_code);
+  const errorMessage = finalStatusLockedRef.current 
+    ? (capturedErrorMessageRef.current || capturedErrorMessage)
+    : (capturedErrorMessage || paymentAny?.errorMessage || payment?.gateway?.error_message || payment?.failure_details?.message);
   const hasErrorCode = !!errorCode;
   
   const isCompleted = status === 'completed' && !hasErrorCode;
-  const isProcessing = !isLocked && (status === 'pending' || status === 'processing') && !hasExpired;
-  const isFailed = isLocked ? (status === 'failed' || hasErrorCode || hasExpired) : (status === 'failed' || (hasExpired && !isCompleted));
+  const isProcessing = !finalStatusLocked && (status === 'pending' || status === 'processing') && !hasErrorCode && !hasExpired;
+  const isFailed = finalStatusLocked ? (status === 'failed' || hasErrorCode || hasExpired) : (status === 'failed' || hasErrorCode || (hasExpired && !isCompleted));
   const statusColor = getStatusColor(isFailed ? 'failed' : status);
 
   return (
