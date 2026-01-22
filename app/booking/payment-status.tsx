@@ -72,16 +72,18 @@ export default function PaymentStatusScreen() {
 
           console.log(`[PaymentStatus] Poll response - status: ${paymentData?.status}, errorCode: ${paymentData?.gateway?.error_code || paymentData?.errorCode}, errorMessage: ${paymentData?.errorMessage || paymentData?.gateway?.error_message}`);
 
-          if (paymentData?.gateway?.error_code || paymentData?.errorCode) {
-            console.log('[PaymentStatus] Error code detected:', paymentData.gateway.error_code || paymentData.errorCode);
-            const errorMsg = paymentData.errorMessage || paymentData.gateway?.error_message || paymentData.failure_details?.message || 'Payment failed. Please try again.';
+          const detectedErrorCode = paymentData?.errorCode || paymentData?.gateway?.error_code;
+          if (detectedErrorCode) {
+            console.log('[PaymentStatus] Error code detected:', detectedErrorCode);
+            const errorMsg = paymentData?.errorMessage || paymentData?.gateway?.error_message || paymentData?.failure_details?.message || 'Payment failed. Please try again.';
+            console.log('[PaymentStatus] Error message:', errorMsg);
             setPollingMessage(errorMsg);
             stopPolling();
             stopTimer();
             return;
           }
 
-          if (paymentData?.status === 'completed' && !(paymentData?.gateway?.error_code || paymentData?.errorCode)) {
+          if (paymentData?.status === 'completed' && !detectedErrorCode) {
             console.log('[PaymentStatus] Payment successful!');
             setPollingMessage('Payment successful. Booking confirmed!');
             stopPolling();
@@ -215,9 +217,28 @@ export default function PaymentStatusScreen() {
     }
   };
 
+  const getErrorTitle = (code: number | string | undefined, message: string | undefined): string => {
+    if (!code && !message) return 'Transaction Error';
+    
+    const codeStr = String(code || '');
+    if (codeStr.includes('703202') || message?.toLowerCase().includes('rejected by customer')) {
+      return 'Payment Rejected';
+    }
+    if (codeStr.includes('insufficient') || message?.toLowerCase().includes('insufficient')) {
+      return 'Insufficient Funds';
+    }
+    if (message?.toLowerCase().includes('timeout') || message?.toLowerCase().includes('expired')) {
+      return 'Payment Timeout';
+    }
+    if (message?.toLowerCase().includes('cancelled') || message?.toLowerCase().includes('canceled')) {
+      return 'Payment Cancelled';
+    }
+    return 'Payment Failed';
+  };
+
   const getStatusTitle = (status: PaymentStatus) => {
     const paymentData: any = payment;
-    if (paymentData?.gateway?.error_code || paymentData?.errorCode) {
+    if (paymentData?.errorCode || paymentData?.gateway?.error_code) {
       return 'Payment Failed';
     }
 
@@ -247,11 +268,11 @@ export default function PaymentStatusScreen() {
 
   const getStatusMessage = () => {
     const paymentData: any = payment;
-    const hasError = paymentData?.gateway?.error_code || paymentData?.errorCode;
-    const errorMessage = paymentData?.errorMessage || paymentData?.gateway?.error_message || paymentData?.failure_details?.message;
+    const hasError = paymentData?.errorCode || paymentData?.gateway?.error_code;
+    const errMsg = paymentData?.errorMessage || paymentData?.gateway?.error_message || paymentData?.failure_details?.message;
 
     if (hasError) {
-      return errorMessage || 'Payment rejected. Please try again.';
+      return errMsg || 'Payment rejected. Please try again.';
     }
 
     if (hasExpired && payment?.status !== 'completed') {
@@ -277,7 +298,7 @@ export default function PaymentStatusScreen() {
     }
 
     if (payment.status === 'failed') {
-      return errorMessage || 'Payment could not be completed';
+      return errMsg || 'Payment could not be completed';
     }
 
     return payment.instructions?.message || pollingMessage;
@@ -438,7 +459,10 @@ Thank you for using Mu Baku Lifestyle!
   }
 
   const status = payment?.status || 'pending';
-  const hasErrorCode = !!payment?.gateway?.error_code || !!payment?.errorCode;
+  const paymentAny = payment as any;
+  const hasErrorCode = !!paymentAny?.errorCode || !!payment?.gateway?.error_code;
+  const errorCode = paymentAny?.errorCode || payment?.gateway?.error_code;
+  const errorMessage = paymentAny?.errorMessage || payment?.gateway?.error_message || payment?.failure_details?.message;
   const isCompleted = status === 'completed' && !hasErrorCode;
   const isProcessing = (status === 'pending' || status === 'processing') && !isCompleted && !hasErrorCode && !hasExpired;
   const isFailed = status === 'failed' || hasErrorCode || (hasExpired && !isCompleted);
@@ -466,16 +490,16 @@ Thank you for using Mu Baku Lifestyle!
                   <View style={styles.fancyErrorHeader}>
                     <AlertCircle size={24} color="#B91C1C" />
                     <Text style={styles.fancyErrorTitle}>
-                      {payment?.failure_details?.code?.replace(/_/g, ' ') || payment?.gateway?.error_code?.replace(/_/g, ' ') || 'Transaction Error'}
+                      {getErrorTitle(errorCode, errorMessage)}
                     </Text>
                   </View>
                   <Text style={styles.fancyErrorMessage}>
-                    {payment?.failure_details?.message || payment?.gateway?.error_message || (hasExpired && !payment?.failure_details && !payment?.gateway?.error_message ? 'The request timed out while waiting for payment confirmation. Please check your balance and try again.' : 'An unknown error occurred.')}
+                    {errorMessage || (hasExpired && !errorMessage ? 'The request timed out while waiting for payment confirmation. Please check your balance and try again.' : 'An unknown error occurred.')}
                   </Text>
-                  {(payment?.failure_details?.code || payment?.gateway?.error_code) && (
+                  {errorCode && (
                     <View style={styles.errorCodeContainer}>
                       <Text style={styles.errorCodeText}>
-                        CODE: {payment?.failure_details?.code || payment?.gateway?.error_code}
+                        ERROR CODE: {errorCode}
                       </Text>
                     </View>
                   )}
