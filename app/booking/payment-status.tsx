@@ -469,16 +469,11 @@ Thank you for using Mu Baku Lifestyle!
   const status = payment?.status || 'pending';
   const paymentAny = payment as any;
   
-  // Once locked, prioritize captured values to prevent flickering
-  const hasErrorCode = finalStatusLocked 
-    ? !!capturedErrorCode 
-    : (!!capturedErrorCode || !!paymentAny?.errorCode || !!payment?.gateway?.error_code);
-  const errorCode = finalStatusLocked 
-    ? capturedErrorCode 
-    : (capturedErrorCode || paymentAny?.errorCode || payment?.gateway?.error_code);
-  const errorMessage = finalStatusLocked 
-    ? capturedErrorMessage 
-    : (capturedErrorMessage || paymentAny?.errorMessage || payment?.gateway?.error_message || payment?.failure_details?.message);
+  // Always prioritize captured values - once captured, they are authoritative
+  const hasErrorCode = !!capturedErrorCode || !!paymentAny?.errorCode || !!payment?.gateway?.error_code;
+  const errorCode = capturedErrorCode || paymentAny?.errorCode || payment?.gateway?.error_code;
+  // IMPORTANT: Always use captured error message first, never override with defaults
+  const errorMessage = capturedErrorMessage || paymentAny?.errorMessage || payment?.gateway?.error_message || payment?.failure_details?.message;
   
   const isCompleted = status === 'completed' && !hasErrorCode && !capturedErrorCode;
   const isProcessing = (status === 'pending' || status === 'processing') && !isCompleted && !hasErrorCode && !hasExpired && !finalStatusLocked;
@@ -511,7 +506,7 @@ Thank you for using Mu Baku Lifestyle!
                     </Text>
                   </View>
                   <Text style={styles.fancyErrorMessageLarge}>
-                    {errorMessage || (hasExpired ? 'The request timed out while waiting for payment confirmation. Please check your balance and try again.' : 'Payment could not be completed.')}
+                    {errorMessage ? errorMessage : (hasExpired ? 'The request timed out while waiting for payment confirmation. Please check your balance and try again.' : 'Payment could not be completed.')}
                   </Text>
                   {errorCode && (
                     <View style={styles.errorCodeContainer}>
