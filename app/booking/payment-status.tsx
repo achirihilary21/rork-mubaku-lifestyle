@@ -23,6 +23,7 @@ export default function PaymentStatusScreen() {
   const [pollAttempts, setPollAttempts] = useState(0);
   const [capturedErrorCode, setCapturedErrorCode] = useState<number | string | null>(null);
   const [capturedErrorMessage, setCapturedErrorMessage] = useState<string | null>(null);
+  const [finalStatusLocked, setFinalStatusLocked] = useState(false);
   const MAX_POLL_ATTEMPTS = 60;
   const TIMEOUT_SECONDS = 180;
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -75,33 +76,36 @@ export default function PaymentStatusScreen() {
           console.log(`[PaymentStatus] Poll response - status: ${paymentData?.status}, errorCode: ${paymentData?.gateway?.error_code || paymentData?.errorCode}, errorMessage: ${paymentData?.errorMessage || paymentData?.gateway?.error_message}`);
 
           const detectedErrorCode = paymentData?.errorCode || paymentData?.gateway?.error_code;
-          if (detectedErrorCode) {
+          if (detectedErrorCode && !finalStatusLocked) {
             console.log('[PaymentStatus] Error code detected:', detectedErrorCode);
             const errorMsg = paymentData?.errorMessage || paymentData?.gateway?.error_message || paymentData?.failure_details?.message || 'Payment failed. Please try again.';
             console.log('[PaymentStatus] Error message:', errorMsg);
             setCapturedErrorCode(detectedErrorCode);
             setCapturedErrorMessage(errorMsg);
             setPollingMessage(errorMsg);
+            setFinalStatusLocked(true);
             stopPolling();
             stopTimer();
             return;
           }
 
-          if (paymentData?.status === 'completed' && !detectedErrorCode) {
+          if (paymentData?.status === 'completed' && !detectedErrorCode && !finalStatusLocked) {
             console.log('[PaymentStatus] Payment successful!');
             setPollingMessage('Payment successful. Booking confirmed!');
+            setFinalStatusLocked(true);
             stopPolling();
             stopTimer();
             return;
           }
 
-          if (paymentData?.status === 'failed') {
+          if (paymentData?.status === 'failed' && !finalStatusLocked) {
             console.log('[PaymentStatus] Payment failed');
             const errorMsg = paymentData.errorMessage || paymentData.failure_details?.message || paymentData.gateway?.error_message || 'Payment could not be completed.';
             const errCode = paymentData.errorCode || paymentData.gateway?.error_code;
             if (errCode) setCapturedErrorCode(errCode);
             setCapturedErrorMessage(errorMsg);
             setPollingMessage(errorMsg);
+            setFinalStatusLocked(true);
             stopPolling();
             stopTimer();
             return;
@@ -467,12 +471,21 @@ Thank you for using Mu Baku Lifestyle!
 
   const status = payment?.status || 'pending';
   const paymentAny = payment as any;
-  const hasErrorCode = !!capturedErrorCode || !!paymentAny?.errorCode || !!payment?.gateway?.error_code;
-  const errorCode = capturedErrorCode || paymentAny?.errorCode || payment?.gateway?.error_code;
-  const errorMessage = capturedErrorMessage || paymentAny?.errorMessage || payment?.gateway?.error_message || payment?.failure_details?.message;
-  const isCompleted = status === 'completed' && !hasErrorCode;
-  const isProcessing = (status === 'pending' || status === 'processing') && !isCompleted && !hasErrorCode && !hasExpired;
-  const isFailed = status === 'failed' || hasErrorCode || (hasExpired && !isCompleted);
+  
+  // Once locked, prioritize captured values to prevent flickering
+  const hasErrorCode = finalStatusLocked 
+    ? !!capturedErrorCode 
+    : (!!capturedErrorCode || !!paymentAny?.errorCode || !!payment?.gateway?.error_code);
+  const errorCode = finalStatusLocked 
+    ? capturedErrorCode 
+    : (capturedErrorCode || paymentAny?.errorCode || payment?.gateway?.error_code);
+  const errorMessage = finalStatusLocked 
+    ? capturedErrorMessage 
+    : (capturedErrorMessage || paymentAny?.errorMessage || payment?.gateway?.error_message || payment?.failure_details?.message);
+  
+  const isCompleted = status === 'completed' && !hasErrorCode && !capturedErrorCode;
+  const isProcessing = (status === 'pending' || status === 'processing') && !isCompleted && !hasErrorCode && !hasExpired && !finalStatusLocked;
+  const isFailed = status === 'failed' || hasErrorCode || capturedErrorCode || (hasExpired && !isCompleted);
   const statusColor = getStatusColor(isFailed ? 'failed' : status);
 
   return (
@@ -500,8 +513,8 @@ Thank you for using Mu Baku Lifestyle!
                       {getErrorTitle(errorCode, errorMessage)}
                     </Text>
                   </View>
-                  <Text style={styles.fancyErrorMessage}>
-                    {errorMessage || (hasExpired ? 'The request timed out while waiting for payment confirmation. Please check your balance and try again.' : 'Payment could not be completed. Please try again.')}
+                  <Text style={styles.fancyErrorMessageLarge}>
+                    {errorMessage || (hasExpired ? 'The request timed out while waiting for payment confirmation. Please check your balance and try again.' : 'Payment could not be completed.')}
                   </Text>
                   {errorCode && (
                     <View style={styles.errorCodeContainer}>
@@ -850,6 +863,13 @@ const styles = StyleSheet.create({
     color: '#991B1B',
     lineHeight: 22,
     marginBottom: 16,
+  },
+  fancyErrorMessageLarge: {
+    fontSize: 18,
+    color: '#991B1B',
+    lineHeight: 28,
+    marginBottom: 16,
+    fontWeight: '500',
   },
   errorCodeContainer: {
     backgroundColor: '#FEE2E2',
