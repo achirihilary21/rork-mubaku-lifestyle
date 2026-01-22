@@ -24,6 +24,7 @@ export default function PaymentStatusScreen() {
   const [capturedErrorCode, setCapturedErrorCode] = useState<number | string | null>(null);
   const [capturedErrorMessage, setCapturedErrorMessage] = useState<string | null>(null);
   const [finalStatusLocked, setFinalStatusLocked] = useState(false);
+  const finalStatusLockedRef = useRef(false);
   const MAX_POLL_ATTEMPTS = 60;
   const TIMEOUT_SECONDS = 180;
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -55,6 +56,14 @@ export default function PaymentStatusScreen() {
 
       let pollCount = 0;
       pollingIntervalRef.current = setInterval(async () => {
+        // Check if status is already locked (error captured or completed) - stop immediately
+        if (finalStatusLockedRef.current) {
+          console.log('[PaymentStatus] Status already locked, stopping poll');
+          stopPolling();
+          stopTimer();
+          return;
+        }
+
         pollCount++;
         setPollAttempts(pollCount);
         const currentPayment: any = payment;
@@ -76,7 +85,7 @@ export default function PaymentStatusScreen() {
           console.log(`[PaymentStatus] Poll response - status: ${paymentData?.status}, errorCode: ${paymentData?.gateway?.error_code || paymentData?.errorCode}, errorMessage: ${paymentData?.errorMessage || paymentData?.gateway?.error_message}`);
 
           const detectedErrorCode = paymentData?.errorCode || paymentData?.gateway?.error_code;
-          if (detectedErrorCode && !finalStatusLocked) {
+          if (detectedErrorCode && !finalStatusLockedRef.current) {
             console.log('[PaymentStatus] Error code detected:', detectedErrorCode);
             const errorMsg = paymentData?.errorMessage || paymentData?.gateway?.error_message || paymentData?.failure_details?.message || 'Payment failed. Please try again.';
             console.log('[PaymentStatus] Error message:', errorMsg);
@@ -84,21 +93,23 @@ export default function PaymentStatusScreen() {
             setCapturedErrorMessage(errorMsg);
             setPollingMessage(errorMsg);
             setFinalStatusLocked(true);
+            finalStatusLockedRef.current = true;
             stopPolling();
             stopTimer();
             return;
           }
 
-          if (paymentData?.status === 'completed' && !detectedErrorCode && !finalStatusLocked) {
+          if (paymentData?.status === 'completed' && !detectedErrorCode && !finalStatusLockedRef.current) {
             console.log('[PaymentStatus] Payment successful!');
             setPollingMessage('Payment successful. Booking confirmed!');
             setFinalStatusLocked(true);
+            finalStatusLockedRef.current = true;
             stopPolling();
             stopTimer();
             return;
           }
 
-          if (paymentData?.status === 'failed' && !finalStatusLocked) {
+          if (paymentData?.status === 'failed' && !finalStatusLockedRef.current) {
             console.log('[PaymentStatus] Payment failed');
             const errorMsg = paymentData.errorMessage || paymentData.failure_details?.message || paymentData.gateway?.error_message || 'Payment could not be completed.';
             const errCode = paymentData.errorCode || paymentData.gateway?.error_code;
@@ -106,6 +117,7 @@ export default function PaymentStatusScreen() {
             setCapturedErrorMessage(errorMsg);
             setPollingMessage(errorMsg);
             setFinalStatusLocked(true);
+            finalStatusLockedRef.current = true;
             stopPolling();
             stopTimer();
             return;
