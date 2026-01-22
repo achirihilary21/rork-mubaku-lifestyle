@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
-import { Home, Calendar, User, Users, BarChart3, MessageCircle } from 'lucide-react-native';
+import { Home, Calendar, User, Users, BarChart3 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import StickyHeader from '../components/StickyHeader';
 import { useTranslation } from 'react-i18next';
@@ -88,13 +88,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <Calendar color={color} size={size} />,
         }}
       />
-      {/* <Tabs.Screen
-        name="messages"
-        options={{
-          title: t('messages'),
-          tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} />,
-        }}
-      /> */}
       <Tabs.Screen
         name="profile"
         options={{

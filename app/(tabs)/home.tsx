@@ -214,7 +214,7 @@ export default function HomeScreen() {
                       <Text style={styles.serviceLocation}>📍 {service.provider_location.city}</Text>
                     </View>
                     <View style={styles.serviceMeta}>
-                      <Text style={styles.servicePrice}>{service.price_display}</Text>
+                      <Text style={styles.servicePrice}>{service.price} XAF</Text>
                       <Text style={styles.serviceDuration}>{service.duration_minutes}min</Text>
                     </View>
                   </View>
