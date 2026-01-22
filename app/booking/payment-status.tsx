@@ -240,22 +240,7 @@ export default function PaymentStatusScreen() {
     }
   };
 
-  const getErrorTitle = (code: number | string | undefined, message: string | undefined): string => {
-    if (!code && !message) return 'Transaction Error';
-    
-    const codeStr = String(code || '');
-    if (codeStr.includes('703202') || message?.toLowerCase().includes('rejected by customer')) {
-      return 'Payment Rejected';
-    }
-    if (codeStr.includes('insufficient') || message?.toLowerCase().includes('insufficient')) {
-      return 'Insufficient Funds';
-    }
-    if (message?.toLowerCase().includes('timeout') || message?.toLowerCase().includes('expired')) {
-      return 'Payment Timeout';
-    }
-    if (message?.toLowerCase().includes('cancelled') || message?.toLowerCase().includes('canceled')) {
-      return 'Payment Cancelled';
-    }
+  const getErrorTitle = (): string => {
     return 'Payment Failed';
   };
 
@@ -522,7 +507,7 @@ Thank you for using Mu Baku Lifestyle!
                   <View style={styles.fancyErrorHeader}>
                     <AlertCircle size={24} color="#B91C1C" />
                     <Text style={styles.fancyErrorTitle}>
-                      {getErrorTitle(errorCode, errorMessage)}
+                      {getErrorTitle()}
                     </Text>
                   </View>
                   <Text style={styles.fancyErrorMessageLarge}>
